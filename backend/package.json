@@ -2,7 +2,7 @@
   "name": "credlink-backend",
   "version": "1.0.0",
   "description": "CredLink Verifiable Credentials Backend REST API",
-  "type": "module",
+  "type": "commonjs",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
