@@ -1,8 +1,13 @@
-const CACHE_NAME = 'credlink-pwa-v1';
+const CACHE_NAME = 'credlink-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/login',
   '/dashboard',
+  '/favicon.ico',
+  '/icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-icon.png',
   '/logo.png',
   '/logo.jpg',
   '/manifest.json',

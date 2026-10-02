@@ -30,7 +30,7 @@ export function CredLinkLogo({
         className={`${dim.box} relative shrink-0 rounded-lg overflow-hidden border border-slate-700/60 shadow-xs bg-[#090D16] transition-transform duration-200 hover:scale-105`}
       >
         <Image
-          src="/logo.jpg"
+          src="/logo.png"
           alt="CredLink Verified Chain Logo"
           width={dim.img}
           height={dim.img}
