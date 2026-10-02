@@ -279,7 +279,7 @@ export default function DashboardPage() {
 
   return (
     <Shell>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Organization Status Notice: Pending Approval */}
         {isOrgPending && (
           <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-xl text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
@@ -311,23 +311,23 @@ export default function DashboardPage() {
         )}
 
         {/* Banner Notice / Demo Badge */}
-        <div className="p-4 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="p-3 md:p-4 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-xl flex flex-col gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-800 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-semibold tracking-tight">
+            <div className="min-w-0">
+              <h3 className="text-[15px] md:text-base font-semibold tracking-tight truncate">
                 {currentUser.organizationName}
               </h3>
-              <p className="text-xs sm:text-sm opacity-80 font-mono mt-0.5">
-                DID: {currentUser.organizationDid}
+              <p className="text-[11px] md:text-sm opacity-80 font-mono mt-0.5 truncate">
+                DID: {truncateDid(currentUser.organizationDid)}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="neutral" className="bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-800 border-none text-xs">
-              {currentUser.role} ENVIRONMENT
+            <Badge variant="neutral" className="bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-800 border-none text-[10px] md:text-xs">
+              {currentUser.role}
             </Badge>
             <Button
               variant={currentUser.role === 'HOSPITAL' ? 'health' : 'secondary'}
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                 setIsIssueModalOpen(true);
               }}
               disabled={isOrgPending}
-              className="gap-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="gap-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed h-9 md:h-8"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Issue Credential</span>
@@ -379,205 +379,276 @@ export default function DashboardPage() {
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Issued Credentials</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{credentials.length}</p>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  {credentials.length === 0 ? '0 records in database' : 'Persisted in Supabase'}
+          <div className="grid grid-cols-3 gap-2 md:gap-4">
+            <Card className="p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] md:text-sm font-medium text-slate-500 dark:text-slate-400 leading-tight">Credentials</p>
+                <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">{credentials.length}</p>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 font-medium hidden md:block">
+                  {credentials.length === 0 ? '0 records' : 'Supabase'}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 hidden md:flex">
                 <FileCheck2 className="w-5 h-5" />
               </div>
             </Card>
 
-            <Card className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Verification Requests</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{consents.length}</p>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  {consents.length === 0 ? '0 active requests' : `${consents.length} consent-controlled`}
+            <Card className="p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] md:text-sm font-medium text-slate-500 dark:text-slate-400 leading-tight">Verifications</p>
+                <p className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mt-0.5">{consents.length}</p>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 font-medium hidden md:block">
+                  {consents.length === 0 ? '0 active' : `${consents.length} controlled`}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0 hidden md:flex">
                 <ShieldCheck className="w-5 h-5" />
               </div>
             </Card>
 
-            <Card className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Trust Registry Status</p>
-                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Authorized Issuer
+            <Card className="p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] md:text-sm font-medium text-slate-500 dark:text-slate-400 leading-tight">Registry</p>
+                <p className="text-[13px] md:text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  <span className="hidden md:inline">Authorized</span>
+                  <span className="md:hidden">Active</span>
                 </p>
-                <p className="text-xs text-slate-500 mt-1 font-mono">{truncateDid(currentUser.organizationDid)}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 hidden md:flex">
                 <Building2 className="w-5 h-5" />
               </div>
             </Card>
           </div>
         )}
 
-        {/* Section 1: Recent Credentials Table */}
+        {/* Section 1: Recent Credentials — Card list on mobile, Table on desktop */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div>
-                <CardTitle>Recent Issued Credentials ({currentUser.role})</CardTitle>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                <CardTitle className="text-[15px] md:text-base">Recent Credentials</CardTitle>
+                <p className="text-[11px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 hidden md:block">
                   Verifiable credentials issued under governance schema.
                 </p>
               </div>
               <Link href="/credentials">
-                <Button variant="ghost" size="sm" className="gap-1 text-xs sm:text-sm font-medium">
-                  <span>View Catalog</span>
+                <Button variant="ghost" size="sm" className="gap-1 text-xs font-medium">
+                  <span>View All</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subject Name & ID</TableHead>
-                <TableHead>Credential Type</TableHead>
-                <TableHead>Domain</TableHead>
-                <TableHead>Issuance Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs">Loading credentials...</span>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden px-3 pb-3 space-y-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-slate-400">
+                <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs">Loading...</span>
+              </div>
+            ) : credentials.length === 0 ? (
+              <p className="text-center py-8 text-slate-400 text-xs">No credentials yet.</p>
+            ) : (
+              credentials.slice(0, 5).map((cred) => {
+                const statusBadge = getCredentialStatusBadge(cred.status);
+                return (
+                  <div key={cred.id} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 truncate">{cred.subjectName}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{cred.credentialType}</p>
+                      </div>
+                      <Badge className={`${statusBadge.bg} text-[10px] shrink-0`}>{statusBadge.label}</Badge>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ) : credentials.length === 0 ? (
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                      <Badge variant="neutral" size="sm" className="text-[10px]">{cred.domain}</Badge>
+                      <span>{cred.issuanceDate}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-400">
-                    No issued credentials recorded in database yet.
-                  </TableCell>
+                  <TableHead>Subject Name & ID</TableHead>
+                  <TableHead>Credential Type</TableHead>
+                  <TableHead>Domain</TableHead>
+                  <TableHead>Issuance Date</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ) : (
-                credentials.slice(0, 5).map((cred) => {
-                  const statusBadge = getCredentialStatusBadge(cred.status);
-                  return (
-                    <TableRow key={cred.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{cred.subjectName}</p>
-                          <p className="text-xs font-mono text-slate-500">{cred.subjectId}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{cred.credentialType}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="neutral" size="sm">
-                          {cred.domain}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs sm:text-sm text-slate-500">{cred.issuanceDate}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusBadge.bg}>{statusBadge.label}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs">Loading credentials...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : credentials.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                      No issued credentials recorded in database yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  credentials.slice(0, 5).map((cred) => {
+                    const statusBadge = getCredentialStatusBadge(cred.status);
+                    return (
+                      <TableRow key={cred.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold text-slate-900 dark:text-slate-100">{cred.subjectName}</p>
+                            <p className="text-xs font-mono text-slate-500">{cred.subjectId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">{cred.credentialType}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="neutral" size="sm">{cred.domain}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-slate-500">{cred.issuanceDate}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusBadge.bg}>{statusBadge.label}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
 
-        {/* Section 2: Recent Verification Requests Table */}
+        {/* Section 2: Verification Requests — Card list on mobile, Table on desktop */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between w-full">
               <div>
-                <CardTitle>Verification Request Log</CardTitle>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                <CardTitle className="text-[15px] md:text-base">Verification Log</CardTitle>
+                <p className="text-[11px] md:text-sm text-slate-500 dark:text-slate-400 mt-0.5 hidden md:block">
                   Selective disclosure verification checks submitted by institutions.
                 </p>
               </div>
               <Link href="/verification">
-                <Button variant="ghost" size="sm" className="gap-1 text-xs sm:text-sm font-medium">
-                  <span>Verification Center</span>
+                <Button variant="ghost" size="sm" className="gap-1 text-xs font-medium">
+                  <span>View All</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Requester</TableHead>
-                <TableHead>Target Subject</TableHead>
-                <TableHead>Purpose</TableHead>
-                <TableHead>Requested Claims</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-xs">Loading verification requests...</span>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden px-3 pb-3 space-y-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-slate-400">
+                <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs">Loading...</span>
+              </div>
+            ) : consents.length === 0 ? (
+              <p className="text-center py-8 text-slate-400 text-xs">No verification requests.</p>
+            ) : (
+              consents.slice(0, 5).map((req) => {
+                const statusBadge = getVerificationStatusBadge(req.status);
+                return (
+                  <div key={req.id} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 truncate">{req.requesterName}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{req.purpose}</p>
+                      </div>
+                      <Badge className={`${statusBadge.bg} text-[10px] shrink-0`}>{statusBadge.label}</Badge>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ) : consents.length === 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {req.requestedClaims.map((claim) => (
+                        <span key={claim} className="px-1.5 py-0.5 text-[10px] bg-slate-100 dark:bg-slate-800 rounded font-medium text-slate-600 dark:text-slate-300">
+                          {claim}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-400">
-                    No active or recent verification requests found.
-                  </TableCell>
+                  <TableHead>Requester</TableHead>
+                  <TableHead>Target Subject</TableHead>
+                  <TableHead>Purpose</TableHead>
+                  <TableHead>Requested Claims</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ) : (
-                consents.slice(0, 5).map((req) => {
-                  const statusBadge = getVerificationStatusBadge(req.status);
-                  return (
-                    <TableRow key={req.id}>
-                      <TableCell>
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{req.requesterName}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">{req.targetSubjectName}</p>
-                          <p className="text-xs font-mono text-slate-500">{req.targetSubjectId}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">{req.purpose}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {req.requestedClaims.map((claim) => (
-                            <span key={claim} className="px-1.5 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 rounded font-medium text-slate-600 dark:text-slate-300">
-                              {claim}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusBadge.bg}>{statusBadge.label}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs">Loading verification requests...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : consents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400">
+                      No active or recent verification requests found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  consents.slice(0, 5).map((req) => {
+                    const statusBadge = getVerificationStatusBadge(req.status);
+                    return (
+                      <TableRow key={req.id}>
+                        <TableCell>
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{req.requesterName}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-slate-200">{req.targetSubjectName}</p>
+                            <p className="text-xs font-mono text-slate-500">{req.targetSubjectId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">{req.purpose}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {req.requestedClaims.map((claim) => (
+                              <span key={claim} className="px-1.5 py-0.5 text-xs bg-slate-100 dark:bg-slate-800 rounded font-medium text-slate-600 dark:text-slate-300">
+                                {claim}
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusBadge.bg}>{statusBadge.label}</Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       </div>
 

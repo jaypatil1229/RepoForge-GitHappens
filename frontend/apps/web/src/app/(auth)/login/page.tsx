@@ -55,7 +55,7 @@ export default function LoginPage() {
   const displayError = authContextError || localError;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090D16] flex flex-col justify-center py-12 sm:px-6 lg:px-8 antialiased">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090D16] flex flex-col justify-center px-4 py-8 sm:py-12 sm:px-6 lg:px-8 antialiased">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-4">
           <CredLinkLogo size="lg" />
@@ -68,8 +68,8 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 py-8 px-6 sm:px-8 shadow-sm rounded-xl">
+      <div className="mt-5 sm:mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 py-6 px-5 sm:py-8 sm:px-8 shadow-sm rounded-xl">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
             <Input
@@ -121,7 +121,7 @@ export default function LoginPage() {
             )}
 
             {/* Submit Button */}
-            <Button type="submit" isLoading={isLoading} className="w-full h-10 mt-2 gap-2 text-sm font-semibold">
+            <Button type="submit" isLoading={isLoading} className="w-full h-12 md:h-10 mt-2 gap-2 text-[15px] md:text-sm font-semibold">
               <span>Sign In to CredLink</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
@@ -140,7 +140,7 @@ export default function LoginPage() {
                 enterDemoMode();
                 router.push('/dashboard');
               }}
-              className="w-full h-10 gap-2 text-sm font-semibold shadow-xs"
+              className="w-full h-12 md:h-10 gap-2 text-[15px] md:text-sm font-semibold shadow-xs"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>Launch Demo Portal (Direct Access)</span>
