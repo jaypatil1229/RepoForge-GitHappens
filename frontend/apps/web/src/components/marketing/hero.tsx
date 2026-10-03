@@ -136,11 +136,11 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
               className="mt-8 flex flex-wrap items-center gap-3"
             >
-              <Link href="/login" className={buttonStyles({ size: 'lg', className: 'group' })}>
-                Explore the preview
-                <ArrowRight aria-hidden className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+              <Link href="/login" className={buttonStyles({ size: 'lg', className: 'group text-white font-semibold' })}>
+                <span>Explore the preview</span>
+                <ArrowRight aria-hidden className="size-4 text-white transition-transform duration-150 group-hover:translate-x-0.5" />
               </Link>
-              <Link href="#how-it-works" className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
+              <Link href="#how-it-works" className={buttonStyles({ variant: 'secondary', size: 'lg', className: 'text-slate-900 font-semibold' })}>
                 See how it works
               </Link>
             </motion.div>
@@ -162,14 +162,14 @@ export function Hero() {
                       aria-pressed={selected}
                       onClick={() => setView(item.key)}
                       className={cn(
-                        'relative z-10 inline-flex h-8 items-center rounded-[6px] px-3 text-ui transition-colors',
-                        selected ? 'font-medium text-ink-950' : 'text-ink-600 hover:text-ink-950',
+                        'relative z-10 inline-flex h-8 items-center rounded-[6px] px-3 text-xs transition-colors',
+                        selected ? 'font-semibold text-slate-950' : 'text-slate-600 hover:text-slate-950 font-medium',
                       )}
                     >
                       {selected ? (
                         <motion.span
                           layoutId="hero-view-indicator"
-                          className="absolute inset-0 -z-10 rounded-[6px] bg-paper-0 shadow-hairline"
+                          className="absolute inset-0 -z-10 rounded-[6px] bg-white shadow-hairline"
                           transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
                         />
                       ) : null}

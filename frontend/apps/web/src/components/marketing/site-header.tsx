@@ -62,7 +62,7 @@ export function SiteHeader() {
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="inline-flex h-10 items-center rounded-control bg-forest-800 px-4 text-ui font-medium text-paper-0 transition-colors hover:bg-forest-700 shadow-xs"
+            className="inline-flex h-10 items-center rounded-control bg-forest-800 px-4 text-sm font-semibold text-white transition-colors hover:bg-forest-700 shadow-xs"
           >
             Explore the preview
           </Link>
@@ -74,7 +74,7 @@ export function SiteHeader() {
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? 'Close menu' : 'Open menu'}
-          className="inline-flex size-11 items-center justify-center rounded-control border border-line-300 text-ink-800 md:hidden"
+          className="inline-flex size-11 items-center justify-center rounded-control border border-line-300 bg-white text-slate-800 hover:bg-slate-50 md:hidden"
         >
           {open ? <X aria-hidden className="size-4" /> : <Menu aria-hidden className="size-4" />}
         </button>
@@ -96,7 +96,7 @@ export function SiteHeader() {
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="my-2 inline-flex h-11 items-center justify-center rounded-control bg-forest-800 px-4 text-ui font-medium text-paper-0 shadow-xs"
+              className="my-2 inline-flex h-11 items-center justify-center rounded-control bg-forest-800 px-4 text-sm font-semibold text-white shadow-xs"
             >
               Explore the preview
             </Link>
