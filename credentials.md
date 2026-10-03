@@ -87,6 +87,19 @@
 
 ---
 
+### 👤 Citizen — Individual Identity & Wallet Holder
+
+| Field | Value |
+|---|---|
+| **Email** | `citizen@credlink.org` |
+| **Password** | `Citizen@2025` |
+| **Full Name** | Aarav Sharma |
+| **Role** | `CITIZEN` |
+| **Domain** | Citizen / Individual Holder |
+| **Use Case** | View personal credentials, manage consent requests, present verifiable QR proofs, verify attestations |
+
+---
+
 ## Quick Login Test (cURL)
 
 ```bash
