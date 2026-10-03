@@ -52,9 +52,9 @@ export function LandingNavbar() {
                 Institutional Login
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button variant="forest" size="sm" className="text-xs gap-1.5">
-                <span>Launch Demo Portal</span>
+                <span>Login</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </Link>
@@ -141,9 +141,9 @@ export function LandingNavbar() {
                 </Button>
               </Link>
 
-              <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="block">
                 <Button variant="forest" size="lg" className="w-full text-[15px] font-semibold h-13 gap-2 rounded-xl">
-                  <span>Launch Demo Portal</span>
+                  <span>Login</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
