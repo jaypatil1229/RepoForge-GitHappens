@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Search, Filter, QrCode, ShieldAlert, CheckCircle2, FileText, Lock, Eye, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, QrCode, ShieldAlert, CheckCircle2, FileText, Lock, Eye, Trash2, ScanLine, Copy, Check, Loader2 } from 'lucide-react';
 import { Shell } from '../../../components/layout/Shell';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -29,6 +29,10 @@ export default function CredentialsPage() {
   // Selected credential for details drawer & QR presentation modal
   const [selectedCred, setSelectedCred] = useState<CredentialItem | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrPayload, setQrPayload] = useState<any>(null);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<CredentialItem | null>(null);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
 
@@ -131,6 +135,40 @@ export default function CredentialsPage() {
   React.useEffect(() => {
     loadCredentials();
   }, [loadCredentials]);
+
+  const handleOpenQrModal = async (cred: CredentialItem) => {
+    setSelectedCred(cred);
+    setShowQrModal(true);
+    setIsGeneratingQr(true);
+    setQrDataUrl(null);
+    setIsCopied(false);
+    try {
+      const res = await apiClient.generateCredentialQr(cred.id);
+      if (res.success && res.data) {
+        setQrDataUrl(res.data.qrDataUrl);
+        setQrPayload(res.data.payload);
+      } else {
+        const fallbackPayload = {
+          v: 1,
+          type: 'credential',
+          id: cred.id,
+          ts: Math.floor(Date.now() / 1000),
+        };
+        setQrPayload(fallbackPayload);
+      }
+    } catch (err) {
+      console.warn('Backend credential QR generation failed, using standard fallback:', err);
+      const fallbackPayload = {
+        v: 1,
+        type: 'credential',
+        id: cred.id,
+        ts: Math.floor(Date.now() / 1000),
+      };
+      setQrPayload(fallbackPayload);
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
 
   // Load eligible citizens from Supabase when issuance modal opens
   React.useEffect(() => {
@@ -445,10 +483,7 @@ export default function CredentialsPage() {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => {
-                              setSelectedCred(cred);
-                              setShowQrModal(true);
-                            }}
+                            onClick={() => handleOpenQrModal(cred)}
                             className="h-7 text-xs px-2"
                           >
                             <QrCode className="w-3.5 h-3.5" />
@@ -542,26 +577,72 @@ export default function CredentialsPage() {
       {/* Presentation QR Modal */}
       <Dialog
         isOpen={showQrModal && selectedCred !== null}
-        onClose={() => setShowQrModal(false)}
-        title="Verifiable Credential Presentation Payload"
-        description="Encrypted and HMAC-SHA256 signed credential payload."
+        onClose={() => {
+          setShowQrModal(false);
+          setQrDataUrl(null);
+          setQrPayload(null);
+        }}
+        title="Verifiable Credential Presentation QR"
+        description="Scan with Citizen Wallet to import or present verifiable claims."
+        maxWidth="md"
       >
         {selectedCred && (
           <div className="text-center space-y-4 py-2">
-            <div className="inline-block p-4 bg-white border border-slate-300 rounded-xl shadow-md">
-              <div className="w-48 h-48 bg-slate-900 rounded-md flex flex-col items-center justify-center p-3 text-white space-y-2 relative overflow-hidden">
-                <QrCode className="w-24 h-24 text-white" />
-                <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
-                  CREDLINK-VC-PRESENTATION
-                </span>
+            <div className="inline-block p-4 bg-white border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
+              {isGeneratingQr ? (
+                <div className="w-56 h-56 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+                  <p className="text-xs text-slate-500">Generating secure QR...</p>
+                </div>
+              ) : qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Credential Presentation QR"
+                  className="w-56 h-56 object-contain rounded-lg mx-auto"
+                />
+              ) : (
+                <div className="w-56 h-56 bg-slate-900 rounded-lg flex flex-col items-center justify-center p-3 text-white space-y-2 relative overflow-hidden">
+                  <QrCode className="w-20 h-20 text-teal-400" />
+                  <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
+                    CREDLINK-VC-PAYLOAD
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</p>
+              <p className="text-xs text-slate-500">Subject: {selectedCred.subjectName}</p>
+              <p className="text-[10px] text-slate-400 font-mono">ID: {selectedCred.id}</p>
+            </div>
+
+            {/* Payload JSON Inspector & Copy */}
+            {qrPayload && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-lg text-left space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-mono font-semibold text-slate-500">
+                    QR Payload (v1 Contract)
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(qrPayload));
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 2000);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium"
+                  >
+                    {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{isCopied ? 'Copied!' : 'Copy Payload'}</span>
+                  </button>
+                </div>
+                <pre className="text-[10px] font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800 overflow-x-auto max-h-24">
+                  {JSON.stringify(qrPayload, null, 2)}
+                </pre>
               </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">{selectedCred.qrPayload}</p>
-            </div>
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-md text-[11px] text-emerald-800 dark:text-emerald-300">
-              Note: Contains application-level HMAC-SHA256 signature payload.
+            )}
+
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-lg text-[11px] text-emerald-800 dark:text-emerald-300">
+              Note: CredLink QR codes carry only cryptographic reference handles. Full record claims require citizen consent resolution.
             </div>
           </div>
         )}

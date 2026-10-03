@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldCheck, Plus, Search, CheckCircle2, AlertCircle, QrCode, FileCheck, Eye, Lock } from 'lucide-react';
+import { ShieldCheck, Plus, Search, CheckCircle2, AlertCircle, QrCode, FileCheck, Eye, Lock, ScanLine, Copy, Check, Loader2 } from 'lucide-react';
 import { Shell } from '../../../components/layout/Shell';
 import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
@@ -13,6 +13,7 @@ import { Drawer } from '../../../components/ui/Drawer';
 import { VerificationRequest } from '../../../types';
 import { getVerificationStatusBadge } from '../../../lib/utils';
 import { useRoleContext } from '../../../hooks/useRoleContext';
+import { QrScanner } from '../../../components/qr/QrScanner';
 
 import { apiClient, CitizenSummary, CredentialRecord, VerificationCheckResult } from '../../../../../../packages/api-client';
 import { MOCK_VERIFICATION_REQUESTS } from '../../../lib/mockData';
@@ -28,6 +29,13 @@ export default function VerificationPage() {
   // Modals & Verification Report
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrPayload, setQrPayload] = useState<any>(null);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [showCitizenScanner, setShowCitizenScanner] = useState(false);
+  const [directRequestId, setDirectRequestId] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [verificationReport, setVerificationReport] = useState<VerificationCheckResult | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -77,7 +85,66 @@ export default function VerificationPage() {
 
   React.useEffect(() => {
     loadConsents();
+
+    // Check for direct request query parameter (?request=<id>)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const reqId = params.get('request');
+      if (reqId) {
+        setDirectRequestId(reqId);
+        setShowCitizenScanner(true);
+      }
+    }
+
+    const handleConsentUpdated = () => {
+      loadConsents();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('credlink-consent-updated', handleConsentUpdated);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('credlink-consent-updated', handleConsentUpdated);
+      }
+    };
   }, [loadConsents]);
+
+  const handleOpenQrModal = async (req: VerificationRequest) => {
+    setSelectedReq(req);
+    setShowQrModal(true);
+    setIsGeneratingQr(true);
+    setQrDataUrl(null);
+    setIsCopied(false);
+    try {
+      const res = await apiClient.generateConsentQr(req.id);
+      if (res.success && res.data) {
+        setQrDataUrl(res.data.qrDataUrl);
+        setQrPayload(res.data.payload);
+      } else {
+        // Fallback standard payload contract
+        const fallbackPayload = {
+          v: 1,
+          type: 'consent_request',
+          id: req.id,
+          ts: Math.floor(Date.now() / 1000),
+        };
+        setQrPayload(fallbackPayload);
+      }
+    } catch (err) {
+      console.warn('Backend QR generation error, using standard payload fallback:', err);
+      const fallbackPayload = {
+        v: 1,
+        type: 'consent_request',
+        id: req.id,
+        ts: Math.floor(Date.now() / 1000),
+      };
+      setQrPayload(fallbackPayload);
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
 
   // Load citizens when create modal opens
   React.useEffect(() => {
@@ -222,16 +289,28 @@ export default function VerificationPage() {
               Request zero-knowledge claims from citizens across education, employment, banking, and healthcare domains.
             </p>
           </div>
-          {currentUser.role !== 'CITIZEN' && (
-            <Button
-              variant={currentUser.role === 'HOSPITAL' ? 'health' : 'primary'}
-              onClick={() => setShowCreateModal(true)}
-              className="gap-2 shrink-0 font-semibold"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Verification Request</span>
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {currentUser.role === 'CITIZEN' && (
+              <Button
+                variant="outline"
+                onClick={() => setShowCitizenScanner(true)}
+                className="gap-2 shrink-0 font-semibold text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 hover:bg-teal-100/80"
+              >
+                <ScanLine className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span>Scan Request QR</span>
+              </Button>
+            )}
+            {currentUser.role !== 'CITIZEN' && (
+              <Button
+                variant={currentUser.role === 'HOSPITAL' ? 'health' : 'primary'}
+                onClick={() => setShowCreateModal(true)}
+                className="gap-2 shrink-0 font-semibold"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Verification Request</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Requests Table */}
@@ -338,10 +417,7 @@ export default function VerificationPage() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => {
-                            setSelectedReq(req);
-                            setShowQrModal(true);
-                          }}
+                          onClick={() => handleOpenQrModal(req)}
                           className="h-7 text-xs px-2"
                         >
                           <QrCode className="w-3.5 h-3.5" />
@@ -586,26 +662,114 @@ export default function VerificationPage() {
       {/* Verification Request QR Modal */}
       <Dialog
         isOpen={showQrModal && selectedReq !== null}
-        onClose={() => setShowQrModal(false)}
+        onClose={() => {
+          setShowQrModal(false);
+          setQrDataUrl(null);
+          setQrPayload(null);
+        }}
         title="Verification Request Presentation QR"
         description="Present to citizen to scan and grant selective consent."
+        maxWidth="md"
       >
         {selectedReq && (
           <div className="text-center space-y-4 py-2">
-            <div className="inline-block p-4 bg-white border border-slate-300 rounded-xl shadow-md">
-              <div className="w-48 h-48 bg-slate-900 rounded-md flex flex-col items-center justify-center p-3 text-white space-y-2 relative overflow-hidden">
-                <QrCode className="w-24 h-24 text-teal-400" />
-                <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
-                  VERIFY-REQUEST-SESSION
+            <div className="inline-block p-4 bg-white border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
+              {isGeneratingQr ? (
+                <div className="w-56 h-56 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+                  <p className="text-xs text-slate-500">Generating secure QR...</p>
+                </div>
+              ) : qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="Verification Request QR Code"
+                  className="w-56 h-56 object-contain rounded-lg mx-auto"
+                />
+              ) : (
+                <div className="w-56 h-56 bg-slate-900 rounded-lg flex flex-col items-center justify-center p-3 text-white space-y-2 relative overflow-hidden">
+                  <QrCode className="w-20 h-20 text-teal-400" />
+                  <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
+                    VERIFY-REQUEST-PAYLOAD
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {selectedReq.requesterName}
+              </p>
+              <p className="text-xs text-slate-500">
+                Purpose: <span className="text-slate-800 dark:text-slate-200">{selectedReq.purpose}</span>
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">
+                Consent Request UUID: {selectedReq.id}
+              </p>
+            </div>
+
+            {/* Secure Shareable Request Link */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-lg text-left space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] uppercase font-mono font-semibold text-slate-500">
+                  Secure Request Link
                 </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && selectedReq) {
+                      const link = `${window.location.origin}/verification?request=${selectedReq.id}`;
+                      navigator.clipboard.writeText(link);
+                      setIsLinkCopied(true);
+                      setTimeout(() => setIsLinkCopied(false), 2000);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-[11px] text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium"
+                >
+                  {isLinkCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span>{isLinkCopied ? 'Link Copied!' : 'Copy Link'}</span>
+                </button>
               </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={typeof window !== 'undefined' && selectedReq ? `${window.location.origin}/verification?request=${selectedReq.id}` : ''}
+                  className="w-full text-[11px] font-mono bg-white dark:bg-slate-950 px-2.5 py-1.5 rounded border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 select-all"
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Share this direct link with the citizen. Opening it in their wallet will resolve this verification request.
+              </p>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedReq.requesterName}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">credlink://request?id={selectedReq.id}</p>
-            </div>
-            <div className="p-2.5 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 rounded-md text-[11px] text-teal-800 dark:text-teal-300">
-              Note: Clearly identified as a Verification Request QR (requires citizen consent).
+
+            {/* Payload JSON Inspector & Copy for testing / manual entry */}
+            {qrPayload && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-lg text-left space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-mono font-semibold text-slate-500">
+                    QR Payload (v1 Contract)
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(qrPayload));
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 2000);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium"
+                  >
+                    {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{isCopied ? 'Copied!' : 'Copy Payload'}</span>
+                  </button>
+                </div>
+                <pre className="text-[10px] font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800 overflow-x-auto max-h-24">
+                  {JSON.stringify(qrPayload, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            <div className="p-2.5 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-900 rounded-lg text-[11px] text-teal-800 dark:text-teal-300">
+              Note: Citizen can scan this QR code or open the link in Citizen Wallet to inspect purpose and grant selective consent.
             </div>
           </div>
         )}
@@ -718,6 +882,18 @@ export default function VerificationPage() {
           </div>
         </form>
       </Dialog>
+      {/* Citizen QR Scanner Modal */}
+      <QrScanner
+        isOpen={showCitizenScanner}
+        onClose={() => {
+          setShowCitizenScanner(false);
+          setDirectRequestId(null);
+        }}
+        initialRequestId={directRequestId || undefined}
+        onConsentComplete={() => {
+          loadConsents();
+        }}
+      />
     </Shell>
   );
 }

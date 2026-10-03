@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, Search, Bell, ChevronDown, User, LogOut, ShieldAlert, HeartPulse, GraduationCap, Landmark, Briefcase, Shield, X } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, Search, Bell, ChevronDown, User, LogOut, ShieldAlert, HeartPulse, GraduationCap, Landmark, Briefcase, Shield, X, ScanLine } from 'lucide-react';
 import { useRoleContext, deriveUserRole } from '../../hooks/useRoleContext';
 import { UserRole } from '../../types';
 import { Button } from '../ui/Button';
+import { QrScanner } from '../qr/QrScanner';
 
 interface TopbarProps {
   onToggleMobileSidebar: () => void;
@@ -14,12 +15,15 @@ interface TopbarProps {
 
 export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { currentUser, switchRole, logout, memberships } = useRoleContext();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleSignOut = async () => {
     await logout();
+    router.push('/login');
   };
 
   const getPageTitle = (path: string) => {
@@ -84,6 +88,18 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
 
       {/* Right Controls */}
       <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
+        {/* Scan QR Button — Citizens Only */}
+        {userRole === 'CITIZEN' && (
+          <button
+            onClick={() => setShowScanner(true)}
+            className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-teal-50 hover:bg-teal-100/80 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 rounded-lg md:rounded-md border border-teal-200/80 dark:border-teal-800/80 text-xs md:text-sm font-medium text-teal-700 dark:text-teal-300 transition-colors active:bg-teal-100 dark:active:bg-teal-900"
+            title="Scan QR Code (Verification / Consent)"
+          >
+            <ScanLine className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span className="hidden sm:inline">Scan QR</span>
+          </button>
+        )}
+
         {/* Role Switcher — compact on mobile */}
         <div className="relative">
           <button
@@ -169,6 +185,18 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
           </Button>
         </Link>
       </div>
+
+      {/* Global QR Scanner Modal */}
+      <QrScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onConsentComplete={() => {
+          // If on verification or dashboard page, reload state or trigger event
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('credlink-consent-updated'));
+          }
+        }}
+      />
     </header>
   );
 }

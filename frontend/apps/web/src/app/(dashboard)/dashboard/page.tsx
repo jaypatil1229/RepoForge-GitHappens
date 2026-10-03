@@ -16,7 +16,8 @@ import {
   Clock,
   CheckCircle2,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  ScanLine
 } from 'lucide-react';
 import { Shell } from '../../../components/layout/Shell';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
@@ -28,6 +29,7 @@ import { CredentialItem, VerificationRequest, CredentialStatus } from '../../../
 import { getCredentialStatusBadge, getVerificationStatusBadge, truncateDid, getDomainBadgeStyle } from '../../../lib/utils';
 import { Dialog } from '../../../components/ui/Dialog';
 import { Input } from '../../../components/ui/Input';
+import { QrScanner } from '../../../components/qr/QrScanner';
 import { apiClient, CredentialRecord, CitizenSummary } from '../../../../../../packages/api-client';
 import { MOCK_CREDENTIALS, MOCK_VERIFICATION_REQUESTS } from '../../../lib/mockData';
 
@@ -36,6 +38,8 @@ export default function DashboardPage() {
   if (!currentUser) return null;
   const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
   const [issueSuccessToast, setIssueSuccessToast] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [directRequestId, setDirectRequestId] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<CredentialItem[]>([]);
   const [consents, setConsents] = useState<VerificationRequest[]>([]);
   const [citizens, setCitizens] = useState<CitizenSummary[]>([]);
@@ -46,7 +50,7 @@ export default function DashboardPage() {
   const [subjectId, setSubjectId] = useState('');
   const [credentialTitle, setCredentialTitle] = useState('');
   const [credentialType, setCredentialType] = useState(
-    currentUser.role === 'HOSPITAL' ? 'Immunization Record Certificate' : 'Bachelor of Science'
+    currentUser?.role === 'HOSPITAL' ? 'Immunization Record Certificate' : 'Bachelor of Science'
   );
 
   const loadDashboardData = React.useCallback(async () => {
@@ -68,8 +72,8 @@ export default function DashboardPage() {
                 domain: (c.domain?.toUpperCase() as any) || 'CITIZEN',
                 subjectId: c.subjectId,
                 subjectName: c.subjectName || `Citizen ${(c.subjectId || '').substring(0, 6)}`,
-                issuerName: c.issuer?.name || currentUser.organizationName,
-                issuerDid: c.issuer?.did || currentUser.organizationDid,
+                issuerName: c.issuer?.name || currentUser?.organizationName || 'CredLink Network',
+                issuerDid: c.issuer?.did || currentUser?.organizationDid || '',
                 issuanceDate: c.issuanceDate ? c.issuanceDate.split('T')[0] : new Date().toISOString().split('T')[0],
                 status: (c.status as CredentialStatus) || 'VALID',
                 claims: Array.isArray(c.claims)
@@ -87,8 +91,8 @@ export default function DashboardPage() {
             if (d.consents && d.consents.length > 0) {
               const mappedConsents: VerificationRequest[] = d.consents.map((con: any) => ({
                 id: con.id,
-                requesterName: con.requestingOrgId || currentUser.organizationName,
-                requesterDomain: (con.domain?.toUpperCase() as any) || currentUser.role,
+                requesterName: con.requestingOrgId || currentUser?.organizationName || 'CredLink Verifier',
+                requesterDomain: (con.domain?.toUpperCase() as any) || currentUser?.role || 'CITIZEN',
                 targetSubjectName: con.citizenId ? `Citizen ${con.citizenId.substring(0, 6)}` : 'Citizen Subject',
                 targetSubjectId: con.citizenId || 'N/A',
                 purpose: con.purpose,
@@ -181,6 +185,30 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     loadDashboardData();
+
+    // Check for direct request query parameter (?request=<id>)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const reqId = params.get('request');
+      if (reqId) {
+        setDirectRequestId(reqId);
+        setShowScanner(true);
+      }
+    }
+
+    const handleConsentUpdated = () => {
+      loadDashboardData();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('credlink-consent-updated', handleConsentUpdated);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('credlink-consent-updated', handleConsentUpdated);
+      }
+    };
   }, [loadDashboardData]);
 
   // Load eligible citizens from Supabase when issuance modal opens
@@ -329,22 +357,35 @@ export default function DashboardPage() {
             <Badge variant="neutral" className="bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-800 border-none text-[10px] md:text-xs">
               {currentUser.role}
             </Badge>
-            <Button
-              variant={currentUser.role === 'HOSPITAL' ? 'health' : 'secondary'}
-              size="sm"
-              onClick={() => {
-                if (isOrgPending) return;
-                if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
-                  setCredentialType(currentUser.authorizedCredentialTypes[0]);
-                }
-                setIsIssueModalOpen(true);
-              }}
-              disabled={isOrgPending}
-              className="gap-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed h-9 md:h-8"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Issue Credential</span>
-            </Button>
+            {currentUser.role === 'CITIZEN' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowScanner(true)}
+                className="gap-1.5 text-xs font-medium bg-slate-800/80 hover:bg-slate-700 text-teal-300 dark:text-teal-700 dark:bg-slate-200/80 dark:hover:bg-slate-300 border-slate-700 dark:border-slate-300 h-9 md:h-8"
+              >
+                <ScanLine className="w-3.5 h-3.5 text-teal-400 dark:text-teal-600" />
+                <span>Scan QR Code</span>
+              </Button>
+            )}
+            {currentUser.role !== 'CITIZEN' && (
+              <Button
+                variant={currentUser.role === 'HOSPITAL' ? 'health' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  if (isOrgPending) return;
+                  if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
+                    setCredentialType(currentUser.authorizedCredentialTypes[0]);
+                  }
+                  setIsIssueModalOpen(true);
+                }}
+                disabled={isOrgPending}
+                className="gap-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed h-9 md:h-8"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Issue Credential</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -757,6 +798,18 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Global QR Scanner Modal */}
+      <QrScanner
+        isOpen={showScanner}
+        onClose={() => {
+          setShowScanner(false);
+          setDirectRequestId(null);
+        }}
+        initialRequestId={directRequestId || undefined}
+        onConsentComplete={() => {
+          loadDashboardData();
+        }}
+      />
     </Shell>
   );
 }

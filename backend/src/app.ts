@@ -13,6 +13,7 @@ import trustRoutes from './routes/trust.routes';
 import verificationRoutes from './routes/verification.routes';
 import auditRoutes from './routes/audit.routes';
 import demoRoutes from './routes/demo.routes';
+import qrRoutes from './routes/qr.routes';
 import { notFoundHandler } from './middleware/notFound';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -22,19 +23,32 @@ const app: Express = express();
 app.use(helmet());
 
 // CORS configuration restricted to authorized origins
-const allowedOrigins = [
-  env.FRONTEND_URL,
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5000',
-];
+const normalizeOrigin = (url?: string) => (url ? url.replace(/\/+$/, '').toLowerCase() : '');
+const frontendClean = normalizeOrigin(env.FRONTEND_URL);
+const frontendSecure = frontendClean.replace(/^http:\/\//, 'https://');
+const frontendInsecure = frontendClean.replace(/^https:\/\//, 'http://');
+
+const allowedOrigins = new Set(
+  [
+    frontendClean,
+    frontendSecure,
+    frontendInsecure,
+    'https://cred-link-connect.vercel.app',
+    'http://cred-link-connect.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5000',
+  ].filter(Boolean)
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.has(normalized) || normalized.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy blocked access from origin: ${origin}`));
@@ -62,10 +76,13 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/organizations', organizationRoutes);
 app.use('/api/credentials', credentialRoutes);
 app.use('/api/consents', consentRoutes);
+app.use('/api/presentations/requests', consentRoutes);
+app.use('/api/presentations', consentRoutes);
 app.use('/api/trust-registry', trustRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/demo', demoRoutes);
+app.use('/api/qr', qrRoutes);
 
 // Catch-all 404 handler
 app.use(notFoundHandler);

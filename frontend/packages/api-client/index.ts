@@ -171,9 +171,27 @@ export interface VerificationCheckResult {
 export class CredLinkApiClient {
   private baseUrl: string;
   private authToken: string | null = null;
+  private refreshToken: string | null = null;
+  private isRefreshing: boolean = false;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
+    const PROD_BACKEND =
+      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL) ||
+      'https://credlink-20-production.up.railway.app';
+
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const envUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
+      const isInvalidProdBackend =
+        !envUrl ||
+        envUrl.includes('localhost') ||
+        envUrl.includes('127.0.0.1') ||
+        envUrl.includes('vercel.app');
+      this.baseUrl = isInvalidProdBackend ? PROD_BACKEND : envUrl;
+    } else {
+      this.baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
+    }
     // Remove trailing slash if present
     if (this.baseUrl.endsWith('/')) {
       this.baseUrl = this.baseUrl.slice(0, -1);
@@ -188,10 +206,36 @@ export class CredLinkApiClient {
   }
 
   /**
-   * Get currently active Bearer authentication token.
+   * Get currently active Bearer authentication token (with localStorage fallback).
    */
   public getToken(): string | null {
+    if (!this.authToken && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('credlink_auth_token');
+      if (stored) {
+        this.authToken = stored;
+      }
+    }
     return this.authToken;
+  }
+
+  /**
+   * Set or clear refresh token.
+   */
+  public setRefreshToken(token: string | null): void {
+    this.refreshToken = token;
+  }
+
+  /**
+   * Get currently active refresh token (with localStorage fallback).
+   */
+  public getRefreshToken(): string | null {
+    if (!this.refreshToken && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('credlink_refresh_token');
+      if (stored) {
+        this.refreshToken = stored;
+      }
+    }
+    return this.refreshToken;
   }
 
   /**
@@ -206,10 +250,41 @@ export class CredLinkApiClient {
   }
 
   /**
-   * Helper method for executing HTTP fetch requests with standard headers, error handling, and JSON parsing.
+   * Refreshes user session using stored or provided refresh token.
    */
-  private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  public async refreshSession(refreshTokenOverride?: string): Promise<ApiResponse<LoginResponseData>> {
+    const rfToken = refreshTokenOverride || this.getRefreshToken();
+    if (!rfToken) {
+      throw new ApiClientError('No refresh token available', 401);
+    }
+
+    const response = await this.request<LoginResponseData>('/api/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken: rfToken }),
+    }, false);
+
+    if (response.data?.session?.access_token) {
+      this.setToken(response.data.session.access_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_auth_token', response.data.session.access_token);
+      }
+    }
+    if (response.data?.session?.refresh_token) {
+      this.setRefreshToken(response.data.session.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_refresh_token', response.data.session.refresh_token);
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * Helper method for executing HTTP fetch requests with standard headers, error handling, auto-refresh, and JSON parsing.
+   */
+  private async request<T>(path: string, options: RequestInit = {}, allowRefresh: boolean = true): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const activeToken = this.getToken();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -217,8 +292,8 @@ export class CredLinkApiClient {
       ...(options.headers as Record<string, string> || {}),
     };
 
-    if (this.authToken && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${this.authToken}`;
+    if (activeToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${activeToken}`;
     }
 
     try {
@@ -232,9 +307,32 @@ export class CredLinkApiClient {
         jsonBody = await response.json();
       } catch (jsonErr) {
         throw new ApiClientError(
-          `Invalid JSON response received from server (${response.status} ${response.statusText})`,
+          `Invalid JSON response received from server (${response.status} ${response.statusText}) at ${url}`,
           response.status
         );
+      }
+
+      // Check for 401 token invalid / expired error and attempt auto-refresh
+      const isAuthError = response.status === 401 || (jsonBody.error && jsonBody.error.toLowerCase().includes('token'));
+      if (isAuthError && allowRefresh && !this.isRefreshing && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
+        const rfToken = this.getRefreshToken();
+        if (rfToken) {
+          try {
+            this.isRefreshing = true;
+            await this.refreshSession(rfToken);
+            this.isRefreshing = false;
+            // Retry the original request once with fresh token
+            return await this.request<T>(path, options, false);
+          } catch {
+            this.isRefreshing = false;
+            this.setToken(null);
+            this.setRefreshToken(null);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('credlink_auth_token');
+              localStorage.removeItem('credlink_refresh_token');
+            }
+          }
+        }
       }
 
       if (!response.ok || jsonBody.success === false) {
@@ -273,10 +371,19 @@ export class CredLinkApiClient {
     const response = await this.request<LoginResponseData>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
-    });
+    }, false);
 
     if (response.data?.session?.access_token) {
       this.setToken(response.data.session.access_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_auth_token', response.data.session.access_token);
+      }
+    }
+    if (response.data?.session?.refresh_token) {
+      this.setRefreshToken(response.data.session.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_refresh_token', response.data.session.refresh_token);
+      }
     }
 
     return response;
@@ -304,10 +411,19 @@ export class CredLinkApiClient {
     const response = await this.request<LoginResponseData>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(input),
-    });
+    }, false);
 
     if (response.data?.session?.access_token) {
       this.setToken(response.data.session.access_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_auth_token', response.data.session.access_token);
+      }
+    }
+    if (response.data?.session?.refresh_token) {
+      this.setRefreshToken(response.data.session.refresh_token);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('credlink_refresh_token', response.data.session.refresh_token);
+      }
     }
 
     return response;
@@ -326,10 +442,15 @@ export class CredLinkApiClient {
       const response = await this.request<null>('/api/auth/logout', {
         method: 'POST',
         headers,
-      });
+      }, false);
       return response;
     } finally {
       this.setToken(null);
+      this.setRefreshToken(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('credlink_auth_token');
+        localStorage.removeItem('credlink_refresh_token');
+      }
     }
   }
 
@@ -493,6 +614,20 @@ export class CredLinkApiClient {
   }
 
   /**
+   * POST /api/presentations/requests/:id/respond - Citizen approves and presents or rejects a presentation request
+   */
+  public async respondPresentationRequest(
+    id: string,
+    action: 'APPROVE' | 'DENY',
+    approvedClaims?: string[]
+  ): Promise<ApiResponse<unknown>> {
+    return this.request<unknown>(`/api/presentations/requests/${id}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ action, approvedClaims }),
+    });
+  }
+
+  /**
    * POST /api/consents/:id/revoke - Citizen revokes an existing approved consent
    */
   public async revokeConsent(id: string): Promise<ApiResponse<unknown>> {
@@ -553,8 +688,51 @@ export class CredLinkApiClient {
   public async fetchDemoData(): Promise<ApiResponse<any>> {
     return this.request<any>('/api/demo/dashboard', { method: 'GET' });
   }
+
+  // ── QR Code Operations ────────────────────────────────────────────────
+
+  /**
+   * POST /api/qr/consent/:id/generate - Generate QR code for a consent request
+   */
+  public async generateConsentQr(consentId: string): Promise<ApiResponse<{ qrDataUrl: string; payload: unknown }>> {
+    return this.request<{ qrDataUrl: string; payload: unknown }>(`/api/qr/consent/${consentId}/generate`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * POST /api/qr/credential/:id/generate - Generate QR code for a credential
+   */
+  public async generateCredentialQr(credentialId: string): Promise<ApiResponse<{ qrDataUrl: string; payload: unknown }>> {
+    return this.request<{ qrDataUrl: string; payload: unknown }>(`/api/qr/credential/${credentialId}/generate`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * POST /api/qr/resolve - Resolve a scanned QR payload string
+   */
+  public async resolveQrPayload(payload: string): Promise<ApiResponse<{
+    qrType: 'consent_request' | 'credential';
+    id: string;
+    status?: string;
+    alreadyProcessed?: boolean;
+    requestingOrg?: { id: string; name: string; code: string; domain?: string } | null;
+    credential?: { id: string; title: string; credentialType: string; status: string } | null;
+    domain?: string;
+    purpose?: string;
+    requestedClaims?: string[];
+    expiresAt?: string | null;
+    createdAt?: string;
+  }>> {
+    return this.request(`/api/qr/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ payload }),
+    });
+  }
 }
 
 export const createApiClient = (baseUrl?: string) => new CredLinkApiClient(baseUrl);
 export const apiClient = createApiClient();
+
 

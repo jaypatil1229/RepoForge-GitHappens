@@ -218,6 +218,85 @@ export class AuthService {
       memberships: memberships || [],
     };
   }
+
+  /**
+   * Refreshes an expired or expiring access token using a valid Supabase refresh token.
+   */
+  async refreshSession(refreshToken: string) {
+    if (!refreshToken) {
+      throw new AppError('Refresh token is required', 400);
+    }
+
+    const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (refreshError || !refreshData.session || !refreshData.user) {
+      throw new AppError(refreshError?.message || 'Invalid, revoked, or expired refresh token. Please sign in again.', 401);
+    }
+
+    const userId = refreshData.user.id;
+
+    // Fetch user profile from DB
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError || !profile) {
+      throw new AppError('User profile not found. Please contact network administrator.', 403);
+    }
+
+    if (profile.account_status === 'SUSPENDED') {
+      throw new AppError('Your account has been suspended. Please contact administrator.', 403);
+    }
+
+    // Fetch organization memberships
+    const { data: memberships } = await supabaseAdmin
+      .from('organization_members')
+      .select('id, organization_id, member_role, status, organization:organizations(id, name, code, domain, did, is_issuer, verification_status, authorized_credential_types)')
+      .eq('user_id', userId)
+      .eq('status', 'ACTIVE');
+
+    const activeMembership = memberships && memberships.length > 0 ? memberships[0] : null;
+    const rawOrg = activeMembership?.organization;
+    const primaryOrg = Array.isArray(rawOrg) ? rawOrg[0] : rawOrg;
+
+    const organizationId = activeMembership ? (primaryOrg?.id || activeMembership.organization_id) : null;
+    const organizationName = primaryOrg?.name || (profile.role === 'ADMIN' ? 'CredLink Network Governance' : 'Unaffiliated Citizen');
+    const organizationCode = primaryOrg?.code || (profile.role === 'ADMIN' ? 'GOV-ROOT' : null);
+    const organizationDomain = primaryOrg?.domain || (profile.role === 'ADMIN' ? 'admin' : null);
+    const organizationDid = primaryOrg?.did || (profile.role === 'ADMIN' ? 'did:credlink:governance:root' : (profile.id ? `did:credlink:citizen:${profile.id}` : 'did:credlink:citizen:unaffiliated'));
+    const organizationStatus = primaryOrg ? ((primaryOrg as any).verification_status || (primaryOrg as any).status || 'APPROVED') : (profile.role === 'ADMIN' ? 'APPROVED' : null);
+    const isIssuer = primaryOrg ? (primaryOrg.is_issuer ?? false) : false;
+    const authorizedCredentialTypes = primaryOrg ? ((primaryOrg as any).authorized_credential_types || (primaryOrg as any).authorizedCredentialTypes || []) : [];
+
+    return {
+      user: {
+        id: profile.id,
+        email: profile.email,
+        fullName: profile.full_name,
+        phone: profile.phone,
+        role: profile.role,
+        status: profile.account_status,
+        organizationId,
+        organizationName,
+        organizationCode,
+        organizationDomain,
+        organizationDid,
+        organizationStatus,
+        isIssuer,
+        authorizedCredentialTypes,
+      },
+      session: {
+        access_token: refreshData.session.access_token,
+        refresh_token: refreshData.session.refresh_token,
+        expires_at: refreshData.session.expires_at,
+      },
+      memberships: memberships || [],
+    };
+  }
 }
 
 export const authService = new AuthService();

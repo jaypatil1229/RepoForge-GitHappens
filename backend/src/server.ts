@@ -7,7 +7,7 @@ async function startServer() {
     // Initialize persistent NIT Veramo issuer & canary check
     await initIssuerAgent();
 
-    const server = app.listen(env.PORT, () => {
+    const server = app.listen(env.PORT, '0.0.0.0', () => {
       console.log(`==================================================`);
       console.log(`🚀 CredLink Backend API Server Running`);
       console.log(`Environment : ${env.NODE_ENV}`);

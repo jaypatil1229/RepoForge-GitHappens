@@ -8,6 +8,7 @@ import {
 } from '../validators/consent.validator';
 import { AppError } from '../types';
 import { AuthUser } from '../middleware/authMiddleware';
+import { evaluateConsentEligibility } from './qr.service';
 
 export class ConsentService {
   /**
@@ -245,6 +246,14 @@ export class ConsentService {
 
     if (consent.status !== 'PENDING') {
       throw new AppError(`Consent request is already ${consent.status.toLowerCase()}`, 400);
+    }
+
+    // Backend Authoritative Eligibility Check on APPROVE
+    if (input.action === 'APPROVE') {
+      const eligibility = await evaluateConsentEligibility(actor.id, consent);
+      if (!eligibility.isEligible) {
+        throw new AppError(`Cannot approve consent request: ${eligibility.reason || 'Citizen is ineligible'}`, 400);
+      }
     }
 
     const newStatus = input.action === 'APPROVE' ? 'APPROVED' : 'DENIED';

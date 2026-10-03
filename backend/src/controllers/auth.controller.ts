@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
-import { registerSchema, loginSchema } from '../validators/auth.validator';
+import { registerSchema, loginSchema, refreshSchema } from '../validators/auth.validator';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { ApiResponse } from '../types';
 
@@ -37,6 +37,27 @@ export class AuthController {
       const response: ApiResponse = {
         success: true,
         message: 'Login successful',
+        data: result,
+        timestamp: new Date().toISOString(),
+      };
+
+      res.status(200).json(response);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /**
+   * POST /api/auth/refresh
+   */
+  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const validatedInput = refreshSchema.parse(req.body);
+      const result = await authService.refreshSession(validatedInput.refreshToken);
+
+      const response: ApiResponse = {
+        success: true,
+        message: 'Session refreshed successfully',
         data: result,
         timestamp: new Date().toISOString(),
       };

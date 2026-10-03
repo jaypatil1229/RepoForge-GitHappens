@@ -2,11 +2,11 @@
   "name": "credlink-backend",
   "version": "1.0.0",
   "description": "CredLink Verifiable Credentials Backend REST API",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"import('fs').then(fs => fs.writeFileSync('dist/package.json', JSON.stringify({ type: 'commonjs' }, null, 2)))\"",
     "start": "node dist/server.js"
   },
   "keywords": [
@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "@types/qrcode": "^1.5.6",
     "@veramo/core": "^7.0.2",
     "@veramo/credential-jwt": "^7.0.2",
     "@veramo/credential-w3c": "^7.0.2",
@@ -34,6 +35,7 @@
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "morgan": "^1.12.1",
+    "qrcode": "^1.5.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {
