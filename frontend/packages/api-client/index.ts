@@ -180,13 +180,13 @@ export class CredLinkApiClient {
     if (baseUrl) {
       this.baseUrl = baseUrl;
     } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      // In deployed browser: use same-origin relative calls so requests proxy through Next.js API route handler smoothly without CORS 500
       const envUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
-      const isInvalidProdBackend =
-        !envUrl ||
-        envUrl.includes('localhost') ||
-        envUrl.includes('127.0.0.1') ||
-        envUrl.includes('vercel.app');
-      this.baseUrl = isInvalidProdBackend ? PROD_BACKEND : envUrl;
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('vercel.app')) {
+        this.baseUrl = envUrl;
+      } else {
+        this.baseUrl = '';
+      }
     } else {
       this.baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
     }
