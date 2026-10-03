@@ -19,7 +19,11 @@ import { errorHandler } from './middleware/errorHandler';
 const app: Express = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // CORS configuration restricted to authorized origins
 const normalizeOrigin = (url?: string) => (url ? url.replace(/\/+$/, '').toLowerCase() : '');
@@ -47,15 +51,22 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
       const normalized = normalizeOrigin(origin);
-      if (allowedOrigins.has(normalized) || normalized.endsWith('.vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS policy blocked access from origin: ${origin}`));
+      if (
+        allowedOrigins.has(normalized) ||
+        normalized.endsWith('.vercel.app') ||
+        normalized.includes('vercel.app') ||
+        normalized.includes('localhost') ||
+        normalized.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
       }
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
+    exposedHeaders: ['Authorization'],
+    maxAge: 86400,
   })
 );
 
