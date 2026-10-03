@@ -1,19 +1,36 @@
-import { Bell, ChevronRight, Info, QrCode, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Bell, ChevronRight, Info, QrCode, RefreshCw, ShieldCheck } from 'lucide-react'
 import type { Nav } from '../wallet-app'
-import { AppHeader, Card, IconButton, InstitutionAvatar, PrimaryButton, ScreenBody, VerifiedBadge } from '../primitives'
-import { college, credentials, CREDENTIAL_STATUS, GRADUATION_YEAR, student } from '@/lib/wallet-data'
+import { AppHeader, Card, IconButton, InstitutionAvatar, PrimaryButton, ScreenBody } from '../primitives'
+import { useWallet } from '@/lib/wallet-context'
+import { credentialClaims, formatDate } from '@/lib/format'
+import { useState } from 'react'
 
 export function HomeScreen({ nav, notice }: { nav: Nav; notice?: string }) {
-  const [degree, transcript] = credentials
+  const wallet = useWallet()
+  const [refreshing, setRefreshing] = useState(false)
+  const fullName = wallet.user?.fullName || 'Citizen'
+  const firstName = fullName.trim().split(/\s+/)[0]
+  const activeCredentials = wallet.credentials.filter((credential) => credential.status === 'VALID')
 
   return (
     <>
       <AppHeader
         action={
-          <IconButton className="relative">
-            <Bell className="size-[18px]" />
-            <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-success ring-2 ring-background" />
-            <span className="sr-only">Notifications</span>
+          <IconButton
+            aria-label="Refresh wallet data"
+            disabled={refreshing}
+            onClick={async () => {
+              setRefreshing(true)
+              try {
+                await wallet.refreshData()
+              } catch {
+                // refreshData stores the error in wallet state for the screen to show.
+              } finally {
+                setRefreshing(false)
+              }
+            }}
+          >
+            <RefreshCw className={`size-[18px] ${refreshing ? 'animate-spin' : ''}`} />
           </IconButton>
         }
       />
@@ -29,8 +46,15 @@ export function HomeScreen({ nav, notice }: { nav: Nav; notice?: string }) {
           </div>
         )}
 
+        {wallet.dataError && (
+          <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive-soft p-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <span>{wallet.dataError}</span>
+          </div>
+        )}
+
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back, {student.firstName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back, {firstName}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your credentials. Your control.</p>
         </div>
 
@@ -39,8 +63,10 @@ export function HomeScreen({ nav, notice }: { nav: Nav; notice?: string }) {
             <ShieldCheck className="size-5" />
           </span>
           <div>
-            <p className="text-base font-semibold text-ink">2 Active Credentials</p>
-            <p className="text-sm text-muted-foreground">Issued by {college.name}</p>
+            <p className="text-base font-semibold text-ink">{activeCredentials.length} Active Credentials</p>
+            <p className="text-sm text-muted-foreground">
+              Updates {wallet.syncState === 'realtime' ? 'live' : 'automatically'}
+            </p>
           </div>
         </Card>
 
@@ -49,43 +75,59 @@ export function HomeScreen({ nav, notice }: { nav: Nav; notice?: string }) {
             Your credentials
           </h2>
 
-          <Card className="flex flex-col p-5">
-            <div className="flex items-start justify-between">
-              <InstitutionAvatar label={college.abbreviation} className="text-ink" />
-              <VerifiedBadge>{CREDENTIAL_STATUS}</VerifiedBadge>
-            </div>
-            <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">{degree.title}</h3>
-            <p className="text-sm text-muted-foreground">{degree.subtitle}</p>
-            <p className="mt-3 text-sm text-muted-foreground">{college.name}</p>
-            <dl className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
-              <div>
-                <dt className="text-muted-foreground">Domain</dt>
-                <dd className="font-medium text-ink">COLLEGE</dd>
-              </div>
-              <div className="text-right">
-                <dt className="text-muted-foreground">Graduation Year</dt>
-                <dd className="font-medium text-ink">{GRADUATION_YEAR}</dd>
-              </div>
-            </dl>
-            <PrimaryButton onClick={() => nav.push({ name: 'credential', id: degree.id })} className="mt-4 h-11">
-              View Credential
-              <ChevronRight className="size-4" />
-            </PrimaryButton>
-          </Card>
-
-          <Card className="flex flex-col p-5">
-            <div className="flex items-start justify-between">
-              <InstitutionAvatar label={college.abbreviation} className="text-ink" />
-              <VerifiedBadge>{CREDENTIAL_STATUS}</VerifiedBadge>
-            </div>
-            <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">{transcript.title}</h3>
-            <p className="mt-3 text-sm text-muted-foreground">{college.name}</p>
-            <PrimaryButton onClick={() => nav.push({ name: 'credential', id: transcript.id })} className="mt-4 h-11">
-              View Credential
-              <ChevronRight className="size-4" />
-            </PrimaryButton>
-          </Card>
+          {wallet.credentials.length === 0 ? (
+            <Card className="text-center text-sm text-muted-foreground">
+              {wallet.dataLoading
+                ? 'Loading credentials…'
+                : wallet.dataError
+                  ? 'Credentials could not be loaded.'
+                  : 'No credentials have been issued to this account yet.'}
+            </Card>
+          ) : wallet.credentials.map((credential) => {
+            return (
+              <Card key={credential.id} className="flex flex-col p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <InstitutionAvatar
+                    label={(credential.issuer?.code || credential.domain || 'CL').slice(0, 4).toUpperCase()}
+                    className="text-ink"
+                  />
+                  {credential.status === 'VALID'
+                    ? <span className="rounded-full bg-success px-2.5 py-1 text-xs font-medium text-white">VALID</span>
+                    : <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">{credential.status}</span>}
+                </div>
+                <h3 className="mt-5 text-xl font-semibold tracking-tight text-ink">{credential.title}</h3>
+                <p className="text-sm text-muted-foreground">{credential.credentialType}</p>
+                <p className="mt-3 text-sm text-muted-foreground">{credential.issuer?.name || 'Issuer unavailable'}</p>
+                <dl className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">Domain</dt>
+                    <dd className="font-medium text-ink">{credential.domain}</dd>
+                  </div>
+                  <div className="text-right">
+                    <dt className="text-muted-foreground">Issued</dt>
+                    <dd className="font-medium text-ink">{formatDate(credential.issuanceDate)}</dd>
+                  </div>
+                </dl>
+                <PrimaryButton onClick={() => nav.push({ name: 'credential', id: credential.id })} className="mt-4 h-11">
+                  View Credential
+                  <ChevronRight className="size-4" />
+                </PrimaryButton>
+              </Card>
+            )
+          })}
         </section>
+
+        {wallet.consents.some((consent) => consent.status === 'PENDING') && (
+          <Card className="flex items-center gap-3">
+            <Bell className="size-5 shrink-0 text-warning" />
+            <div>
+              <p className="font-semibold text-ink">Pending verification request</p>
+              <p className="text-sm text-muted-foreground">
+                {wallet.consents.filter((consent) => consent.status === 'PENDING').length} request(s) waiting for your review.
+              </p>
+            </div>
+          </Card>
+        )}
 
         <PrimaryButton onClick={() => nav.push({ name: 'scan' })} className="h-14 rounded-2xl text-base">
           <QrCode className="size-5" />

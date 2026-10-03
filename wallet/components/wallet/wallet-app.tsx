@@ -1,25 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useWallet } from '@/lib/wallet-context'
 import { BottomNav, type Tab } from './primitives'
 import { SplashScreen } from './screens/splash-screen'
+import { LoginScreen } from './screens/login-screen'
 import { HomeScreen } from './screens/home-screen'
 import { CredentialDetailScreen } from './screens/credential-detail-screen'
 import { ScanScreen } from './screens/scan-screen'
 import { ConsentScreen } from './screens/consent-screen'
-import { ProcessingScreen } from './screens/processing-screen'
 import { ReceiptScreen } from './screens/receipt-screen'
 import { ActivityScreen } from './screens/activity-screen'
 import { ProfileScreen } from './screens/profile-screen'
 
 export type Route =
   | { name: 'splash' }
+  | { name: 'login' }
   | { name: 'home'; notice?: string }
   | { name: 'credential'; id: string }
   | { name: 'scan' }
-  | { name: 'consent' }
-  | { name: 'processing' }
+  | { name: 'consent'; requestId: string }
   | { name: 'receipt'; id: string; fromShare?: boolean }
   | { name: 'activity' }
   | { name: 'profile' }
@@ -29,11 +30,27 @@ type Direction = 'forward' | 'back' | 'fade'
 const tabRoutes: Tab[] = ['home', 'activity', 'profile']
 
 export function WalletApp() {
+  const wallet = useWallet()
   const [stack, setStack] = useState<Route[]>([{ name: 'splash' }])
   const [direction, setDirection] = useState<Direction>('fade')
   const [renderKey, setRenderKey] = useState(0)
 
   const route = stack[stack.length - 1]
+
+  useEffect(() => {
+    if (wallet.sessionState === 'signed-in' && (route.name === 'splash' || route.name === 'login')) {
+      setStack([{ name: 'home' }])
+      setDirection('fade')
+      setRenderKey((key) => key + 1)
+    } else if (
+      wallet.sessionState === 'signed-out' &&
+      !['splash', 'login'].includes(route.name)
+    ) {
+      setStack([{ name: 'splash' }])
+      setDirection('fade')
+      setRenderKey((key) => key + 1)
+    }
+  }, [wallet.sessionState, route.name])
 
   const push = (next: Route) => {
     setDirection('forward')
@@ -71,7 +88,7 @@ export function WalletApp() {
             direction === 'back' && 'slide-in-from-left-6',
           )}
         >
-          {renderRoute(route, { push, back, replaceRoot })}
+          {renderRoute(route, { push, back, replaceRoot }, wallet)}
         </div>
         {activeTab && <BottomNav active={activeTab} onNavigate={goTab} />}
       </div>
@@ -85,10 +102,12 @@ export type Nav = {
   replaceRoot: (route: Route, dir?: Direction) => void
 }
 
-function renderRoute(route: Route, nav: Nav) {
+function renderRoute(route: Route, nav: Nav, wallet: ReturnType<typeof useWallet>) {
   switch (route.name) {
     case 'splash':
-      return <SplashScreen nav={nav} />
+      return <SplashScreen nav={nav} loading={wallet.sessionState === 'loading'} error={wallet.dataError} />
+    case 'login':
+      return <LoginScreen nav={nav} onSignIn={wallet.signIn} />
     case 'home':
       return <HomeScreen nav={nav} notice={route.notice} />
     case 'credential':
@@ -96,9 +115,7 @@ function renderRoute(route: Route, nav: Nav) {
     case 'scan':
       return <ScanScreen nav={nav} />
     case 'consent':
-      return <ConsentScreen nav={nav} />
-    case 'processing':
-      return <ProcessingScreen nav={nav} />
+      return <ConsentScreen nav={nav} requestId={route.requestId} />
     case 'receipt':
       return <ReceiptScreen nav={nav} id={route.id} fromShare={route.fromShare} />
     case 'activity':
