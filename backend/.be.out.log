@@ -1,0 +1,10 @@
+[Veramo] Initializing persistent NIT Issuer identity...
+[Veramo] Issuer DID loaded and verified: did:key:z6Mkev3SCguxsCxTgZJZPmuC6squigd26P7jaGB7qQQ9A31A [Key: REDACTED]
+[Veramo] NIT Issuer organization synced in DB (ID: 40f481fc-4c6e-483d-901c-8ddbb35052cc)
+==================================================
+🚀 CredLink Backend API Server Running
+Environment : development
+Port        : 5000
+Health Check: http://localhost:5000/api/health
+==================================================
+GET /api/health 200 188.743 ms - 162

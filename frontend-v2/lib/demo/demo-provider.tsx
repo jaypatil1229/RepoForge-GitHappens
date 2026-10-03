@@ -225,6 +225,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   }, [liveActor]);
 
   const client = useMemo(() => createDataClient(mode === 'demo' ? demoActor : null), [mode, demoActor]);
+  // Real authentication must never use the mode-dependent client: when a preview
+  // context is active that client is the mock, which would answer sign-in locally
+  // without ever contacting the backend.
+  const authClient = useMemo(() => createDataClient(null), []);
 
   const refreshSession = useCallback(async () => {
     setBootstrapNonce((value) => value + 1);
@@ -232,16 +236,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback<DemoContextValue['signIn']>(
     async (input) => {
+      // Submitting the real form means live authentication: leave any preview
+      // context first so a failure surfaces an error instead of demo data.
+      explicitPreviewRef.current = false;
+      setSelectedKey(null);
       try {
-        const response = await client.signIn(input);
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Non-fatal.
+      }
+      try {
+        const response = await authClient.signIn(input);
         if (!response.success || !response.data) {
           return { ok: false, error: response.error, details: response.details };
-        }
-        setSelectedKey(null);
-        try {
-          window.localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          // Non-fatal.
         }
         setLiveUser(response.data.user);
         setLiveMemberships(response.data.memberships);
@@ -251,7 +258,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: error instanceof Error ? error.message : 'Sign-in failed.' };
       }
     },
-    [client],
+    [authClient],
   );
 
   const leave = useCallback(async () => {
