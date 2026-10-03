@@ -477,7 +477,76 @@ export class CredLinkApiClient {
   }
 
   /**
-   * POST /api/consents/request - Create a consent / verification request
+   * POST /api/consents/batch-request - Dispatch document verification requests to multiple citizens via Gmail-style email chip selection
+   */
+  public async batchRequestConsent(payload: {
+    citizenEmails: string[];
+    requestingOrgId?: string;
+    documentTypes?: string[];
+    requestedClaims?: string[];
+    domain?: string;
+    purpose: string;
+    expiresAt?: string | null;
+  }): Promise<ApiResponse<{
+    totalDispatched: number;
+    totalRequested: number;
+    requests: Array<{
+      email: string;
+      citizenId?: string;
+      citizenName?: string;
+      consentId?: string;
+      status: 'DISPATCHED' | 'ALREADY_PENDING' | 'NOT_FOUND' | 'ERROR';
+      message?: string;
+      consent?: any;
+    }>;
+  }>> {
+    return this.request('/api/consents/batch-request', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * POST /api/consents/share-access - Requester accesses verified credential data via approved consent
+   */
+  public async accessSharedCredential(payload: {
+    consentId: string;
+    credentialId?: string;
+  }): Promise<ApiResponse<{
+    consentId: string;
+    status: string;
+    purpose: string;
+    approvedClaims: string[];
+    sharedAt: string;
+    expiresAt: string | null;
+    disclosedClaims: Record<string, unknown>;
+    credentialSummary: {
+      id: string;
+      schemaType: string;
+      issuerDid: string;
+      issuerName?: string;
+      issuanceDate: string;
+      status: string;
+      ipfsHash?: string | null;
+      txHash?: string | null;
+    };
+    cryptographicProof: {
+      issuerDid: string;
+      type: string;
+      verificationMethod: string;
+      created: string;
+      verified: boolean;
+      tamperCheck: 'PASSED' | 'FAILED';
+    };
+  }>> {
+    return this.request('/api/consents/share-access', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * POST /api/consents/request - Create a single consent / verification request
    */
   public async createConsentRequest(payload: {
     citizenId: string;

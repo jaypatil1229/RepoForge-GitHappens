@@ -49,14 +49,45 @@ export function Sidebar({ isOpen, onCloseMobile }: SidebarProps) {
     }
   };
 
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { href: '/credentials', label: 'Credential Management', icon: FileCheck2 },
-    { href: '/verification', label: 'Verification Center', icon: ShieldCheck },
-    { href: '/trust-registry', label: 'Trust Registry', icon: Lock },
-    { href: '/organizations', label: 'Issuer Directory', icon: Building2 },
-    { href: '/audit', label: 'Audit Trail', icon: History }
-  ];
+  const getNavItems = () => {
+    if (userRole === 'CITIZEN') {
+      return [
+        { href: '/dashboard', label: 'Wallet Overview', icon: LayoutDashboard },
+        { href: '/credentials', label: 'Citizen Digital Wallet', icon: FileCheck2 },
+        { href: '/verification', label: 'Document Requests & Consent', icon: ShieldCheck },
+        { href: '/organizations', label: 'Verified Issuers', icon: Building2 },
+        { href: '/audit', label: 'Consent History & Logs', icon: History }
+      ];
+    }
+    if (userRole === 'ADMIN') {
+      return [
+        { href: '/dashboard', label: 'Governance Overview', icon: LayoutDashboard },
+        { href: '/organizations', label: 'Issuers & Approvals', icon: Building2 },
+        { href: '/credentials', label: 'Credential Registry', icon: FileCheck2 },
+        { href: '/verification', label: 'All Document Requests', icon: ShieldCheck },
+        { href: '/audit', label: 'Platform & App Logs', icon: History }
+      ];
+    }
+    if (userRole === 'BANK' || userRole === 'EMPLOYER') {
+      return [
+        { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+        { href: '/verification', label: 'Request & Verify Documents', icon: ShieldCheck },
+        { href: '/credentials', label: 'Verified Records', icon: FileCheck2 },
+        { href: '/organizations', label: 'Trusted Issuers', icon: Building2 },
+        { href: '/audit', label: 'Verification Audit', icon: History }
+      ];
+    }
+    // Issuer (COLLEGE, HOSPITAL)
+    return [
+      { href: '/dashboard', label: 'Issuer Dashboard', icon: LayoutDashboard },
+      { href: '/credentials', label: 'Issue & Manage Credentials', icon: FileCheck2 },
+      { href: '/verification', label: 'Verification Requests', icon: ShieldCheck },
+      { href: '/organizations', label: 'Network Directory', icon: Building2 },
+      { href: '/audit', label: 'Issuance Audit Trail', icon: History }
+    ];
+  };
+
+  const navItems = getNavItems();
 
   return (
     <aside

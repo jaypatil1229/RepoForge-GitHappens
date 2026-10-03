@@ -310,41 +310,105 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Banner Notice / Demo Badge */}
-        <div className="p-3 md:p-4 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-xl flex flex-col gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-800 shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+        {/* Persona-Tailored Top Action Banner */}
+        <div className="p-4 md:p-5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded-xl bg-slate-800 text-slate-100 dark:bg-slate-200 dark:text-slate-800 shrink-0">
+              {currentUser.role === 'CITIZEN' ? (
+                <UserCheck className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
+              ) : currentUser.role === 'ADMIN' ? (
+                <Shield className="w-5 h-5 text-purple-400 dark:text-purple-600" />
+              ) : currentUser.role === 'COLLEGE' ? (
+                <GraduationCap className="w-5 h-5 text-blue-400 dark:text-blue-600" />
+              ) : currentUser.role === 'HOSPITAL' ? (
+                <HeartPulse className="w-5 h-5 text-teal-400 dark:text-teal-600" />
+              ) : currentUser.role === 'BANK' ? (
+                <Landmark className="w-5 h-5 text-emerald-400 dark:text-emerald-600" />
+              ) : (
+                <Briefcase className="w-5 h-5 text-indigo-400 dark:text-indigo-600" />
+              )}
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] md:text-base font-semibold tracking-tight truncate">
-                {currentUser.organizationName}
-              </h3>
-              <p className="text-[11px] md:text-sm opacity-80 font-mono mt-0.5 truncate">
-                DID: {truncateDid(currentUser.organizationDid)}
+              <div className="flex items-center gap-2">
+                <h3 className="text-base md:text-lg font-bold tracking-tight truncate">
+                  {currentUser.role === 'CITIZEN'
+                    ? `Welcome back, ${currentUser.name}`
+                    : currentUser.organizationName}
+                </h3>
+                <Badge
+                  variant="neutral"
+                  className="bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-800 border-none text-[10px] md:text-xs"
+                >
+                  {currentUser.role}
+                </Badge>
+              </div>
+              <p className="text-xs md:text-sm opacity-80 mt-0.5 truncate">
+                {currentUser.role === 'CITIZEN'
+                  ? 'Sovereign Digital Identity Wallet • Decentralized Verifiable Credentials'
+                  : `DID: ${truncateDid(currentUser.organizationDid)}`}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="neutral" className="bg-slate-800 text-slate-200 dark:bg-slate-200 dark:text-slate-800 border-none text-[10px] md:text-xs">
-              {currentUser.role}
-            </Badge>
-            <Button
-              variant={currentUser.role === 'HOSPITAL' ? 'health' : 'secondary'}
-              size="sm"
-              onClick={() => {
-                if (isOrgPending) return;
-                if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
-                  setCredentialType(currentUser.authorizedCredentialTypes[0]);
-                }
-                setIsIssueModalOpen(true);
-              }}
-              disabled={isOrgPending}
-              className="gap-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed h-9 md:h-8"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Issue Credential</span>
-            </Button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {currentUser.role === 'CITIZEN' ? (
+              <>
+                <Link href="/credentials">
+                  <Button variant="secondary" size="sm" className="gap-1.5 text-xs font-semibold h-9">
+                    <FileCheck2 className="w-3.5 h-3.5" />
+                    <span>Open My Wallet</span>
+                  </Button>
+                </Link>
+                <Link href="/verification">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs font-semibold h-9 bg-slate-800 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Consent Requests</span>
+                  </Button>
+                </Link>
+              </>
+            ) : currentUser.role === 'ADMIN' ? (
+              <>
+                <Link href="/organizations">
+                  <Button variant="secondary" size="sm" className="gap-1.5 text-xs font-semibold h-9">
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Review Issuers</span>
+                  </Button>
+                </Link>
+                <Link href="/audit">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs font-semibold h-9 bg-slate-800 text-white border-slate-700 hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>System Audit Logs</span>
+                  </Button>
+                </Link>
+              </>
+            ) : currentUser.role === 'BANK' || currentUser.role === 'EMPLOYER' ? (
+              <>
+                <Link href="/verification">
+                  <Button variant="secondary" size="sm" className="gap-1.5 text-xs font-semibold h-9">
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Request Documents (Multi-Citizen)</span>
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              /* Issuer: COLLEGE, HOSPITAL */
+              <Button
+                variant={currentUser.role === 'HOSPITAL' ? 'health' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  if (isOrgPending) return;
+                  if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
+                    setCredentialType(currentUser.authorizedCredentialTypes[0]);
+                  }
+                  setIsIssueModalOpen(true);
+                }}
+                disabled={isOrgPending}
+                className="gap-1.5 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed h-9"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Issue Certificate to Citizen</span>
+              </Button>
+            )}
           </div>
         </div>
 

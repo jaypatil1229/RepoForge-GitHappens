@@ -186,6 +186,64 @@ export const MOCK_CREDENTIALS: CredentialItem[] = [
       { key: 'startDate', label: 'Start Date', value: '2023-07-01' }
     ],
     qrPayload: 'credlink://verify?vc=vc_emp_401&issuer=did:credlink:emp:gti:0x11ce88&sig=demo_sig_401'
+  },
+  // Work Experience Letter (Employer Issuer)
+  {
+    id: 'vc_emp_402',
+    credentialType: 'Official Work Experience Letter',
+    domain: 'EMPLOYER',
+    subjectId: 'CIT-884920',
+    subjectName: 'Aarav Sharma',
+    issuerName: 'TechCorp Solutions',
+    issuerDid: 'did:credlink:emp:techcorp:0x9183ab',
+    issuanceDate: '2026-01-15',
+    status: 'VALID',
+    claims: [
+      { key: 'role', label: 'Designation', value: 'Lead Full Stack Engineer' },
+      { key: 'department', label: 'Department', value: 'Decentralized Identity & Trust' },
+      { key: 'tenure', label: 'Service Duration', value: '3 Years (2023 - 2026)' },
+      { key: 'standing', label: 'Performance Rating', value: 'Outstanding / Top 5%' },
+      { key: 'relievingStatus', label: 'Relieving Clearance', value: 'HONORABLY_RELEASED' }
+    ],
+    qrPayload: 'credlink://verify?vc=vc_emp_402&issuer=did:credlink:emp:techcorp:0x9183ab&sig=demo_sig_402'
+  },
+  // Academic Grade Card (College Issuer)
+  {
+    id: 'vc_edu_203',
+    credentialType: 'Grade Card & Academic Attestation',
+    domain: 'COLLEGE',
+    subjectId: 'STU-2022-881',
+    subjectName: 'Rohan Verma',
+    issuerName: 'National Institute of Technology',
+    issuerDid: 'did:credlink:edu:nit:0x87a1c4',
+    issuanceDate: '2025-12-10',
+    status: 'VALID',
+    claims: [
+      { key: 'semester', label: 'Semester Examined', value: 'Semester 8 (Final Term)' },
+      { key: 'sgpa', label: 'SGPA', value: '9.42 / 10.0' },
+      { key: 'cgpa', label: 'Cumulative CGPA', value: '9.18 / 10.0' },
+      { key: 'class', label: 'Honors Classification', value: 'First Class with Distinction' }
+    ],
+    qrPayload: 'credlink://verify?vc=vc_edu_203&issuer=did:credlink:edu:nit:0x87a1c4&sig=demo_sig_203'
+  },
+  // Super Admin Governance Credential
+  {
+    id: 'vc_admin_001',
+    credentialType: 'Network Governance & Root Authority Attestation',
+    domain: 'ADMIN',
+    subjectId: 'GOV-ROOT',
+    subjectName: 'CredLink Network Governance',
+    issuerName: 'CredLink Network Authority',
+    issuerDid: 'did:credlink:gov:root:0x9f81a7',
+    issuanceDate: '2025-01-01',
+    status: 'VALID',
+    claims: [
+      { key: 'authorityLevel', label: 'Governance Level', value: 'Root Administrative Node (L0)' },
+      { key: 'networkId', label: 'Consortium Chain ID', value: 'credlink-mainnet-beta' },
+      { key: 'accreditationStatus', label: 'Institutional Trust', value: 'GLOBAL_ROOT_TRUST' },
+      { key: 'authorizedSchemas', label: 'Permitted Schemas', value: 'ALL_SCHEMAS_AUTHORIZED' }
+    ],
+    qrPayload: 'credlink://verify?vc=vc_admin_001&issuer=did:credlink:gov:root:0x9f81a7&sig=demo_sig_admin'
   }
 ];
 
