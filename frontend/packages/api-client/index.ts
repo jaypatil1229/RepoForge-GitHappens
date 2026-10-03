@@ -173,14 +173,20 @@ export class CredLinkApiClient {
   private authToken: string | null = null;
 
   constructor(baseUrl?: string) {
+    const PROD_BACKEND =
+      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL) ||
+      'https://credlink-20-production.up.railway.app';
+
     if (baseUrl) {
       this.baseUrl = baseUrl;
     } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       const envUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
-      const isLocalUrl = !envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1');
-      this.baseUrl = isLocalUrl
-        ? (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL) || 'https://credlink-20-production.up.railway.app'
-        : envUrl;
+      const isInvalidProdBackend =
+        !envUrl ||
+        envUrl.includes('localhost') ||
+        envUrl.includes('127.0.0.1') ||
+        envUrl.includes('vercel.app');
+      this.baseUrl = isInvalidProdBackend ? PROD_BACKEND : envUrl;
     } else {
       this.baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
     }
@@ -242,7 +248,7 @@ export class CredLinkApiClient {
         jsonBody = await response.json();
       } catch (jsonErr) {
         throw new ApiClientError(
-          `Invalid JSON response received from server (${response.status} ${response.statusText})`,
+          `Invalid JSON response received from server (${response.status} ${response.statusText}) at ${url}`,
           response.status
         );
       }
