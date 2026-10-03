@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Badge } from '../../../components/ui/Badge';
@@ -12,10 +12,10 @@ import { useRoleContext } from '../../../hooks/useRoleContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, error: authContextError, clearError, enterDemoMode } = useRoleContext();
+  const { login, error: authContextError, clearError } = useRoleContext();
 
-  const [email, setEmail] = useState('admin@credlink.org');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,11 +42,11 @@ export default function LoginPage() {
       if (success) {
         router.push('/dashboard');
       } else {
-        setLocalError('Invalid credentials. You can use Launch Demo Portal below.');
+        setLocalError('Invalid credentials. Please check your email and password.');
       }
     } catch (err: unknown) {
-      enterDemoMode();
-      router.push('/dashboard');
+      const message = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setLocalError(message);
     } finally {
       setIsLoading(false);
     }
@@ -124,26 +124,6 @@ export default function LoginPage() {
             <Button type="submit" isLoading={isLoading} className="w-full h-12 md:h-10 mt-2 gap-2 text-[15px] md:text-sm font-semibold">
               <span>Sign In to CredLink</span>
               <ArrowRight className="w-4 h-4" />
-            </Button>
-
-            <div className="relative my-3 flex items-center justify-center">
-              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-              <span className="bg-white dark:bg-slate-900 px-2.5 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                Or Instant Preview
-              </span>
-            </div>
-
-            <Button
-              type="button"
-              variant="forest"
-              onClick={() => {
-                enterDemoMode();
-                router.push('/dashboard');
-              }}
-              className="w-full h-12 md:h-10 gap-2 text-[15px] md:text-sm font-semibold shadow-xs"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Launch Demo Portal (Direct Access)</span>
             </Button>
           </form>
 

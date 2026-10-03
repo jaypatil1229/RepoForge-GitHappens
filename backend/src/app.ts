@@ -22,19 +22,32 @@ const app: Express = express();
 app.use(helmet());
 
 // CORS configuration restricted to authorized origins
-const allowedOrigins = [
-  env.FRONTEND_URL,
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5000',
-];
+const normalizeOrigin = (url?: string) => (url ? url.replace(/\/+$/, '').toLowerCase() : '');
+const frontendClean = normalizeOrigin(env.FRONTEND_URL);
+const frontendSecure = frontendClean.replace(/^http:\/\//, 'https://');
+const frontendInsecure = frontendClean.replace(/^https:\/\//, 'http://');
+
+const allowedOrigins = new Set(
+  [
+    frontendClean,
+    frontendSecure,
+    frontendInsecure,
+    'https://cred-link-connect.vercel.app',
+    'http://cred-link-connect.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5000',
+  ].filter(Boolean)
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.has(normalized) || normalized.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
         callback(new Error(`CORS policy blocked access from origin: ${origin}`));
