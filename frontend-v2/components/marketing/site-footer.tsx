@@ -1,0 +1,60 @@
+import Link from 'next/link';
+
+import { Logo } from '@/components/ui/logo';
+
+const columns = [
+  {
+    title: 'Product',
+    links: [
+      { href: '/how-it-works', label: 'How it works' },
+      { href: '/trust', label: 'Trust and verification' },
+      { href: '/demo', label: 'Preview contexts' },
+    ],
+  },
+  {
+    title: 'Account',
+    links: [
+      { href: '/login', label: 'Sign in' },
+      { href: '/register', label: 'Register' },
+    ],
+  },
+];
+
+export function SiteFooter() {
+  return (
+    <footer className="border-t border-line-200 bg-paper-50">
+      <div className="container-editorial grid gap-10 py-14 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(0,1fr))]">
+        <div>
+          <Logo />
+          <p className="mt-4 max-w-xs text-ui text-ink-600">
+            A consent-driven credential network for education, employment, finance and healthcare.
+          </p>
+          <p className="mt-5 max-w-sm text-micro text-ink-500">
+            This deployment is a design preview. Records shown are synthetic, no live backend is connected, and no
+            session is created.
+          </p>
+        </div>
+        {columns.map((column) => (
+          <nav key={column.title} aria-label={column.title}>
+            <h2 className="text-ui font-semibold text-ink-950">{column.title}</h2>
+            <ul className="mt-4 flex flex-col gap-2.5">
+              {column.links.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-ui text-ink-600 transition-colors hover:text-ink-950">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+      </div>
+      <div className="border-t border-line-200">
+        <div className="container-editorial flex flex-wrap items-center justify-between gap-3 py-5 text-micro text-ink-500">
+          <p>CredLink — unified life-stage digital identity and record network.</p>
+          <p>Preview build · synthetic data</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
