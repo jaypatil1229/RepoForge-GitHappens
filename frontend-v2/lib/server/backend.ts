@@ -11,8 +11,12 @@ export function backendBaseUrl(): string {
   const raw =
     process.env.BACKEND_URL ||
     process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
     DEFAULT_BACKEND;
-  return raw.replace(/\/+$/, '');
+  let cleaned = raw.trim().replace(/\/+$/, '');
+  cleaned = cleaned.replace(/cred-link-production\.up\.railway\.app/gi, 'credlink-20-production.up.railway.app');
+  cleaned = cleaned.replace(/https?:\/\/cred-link(-20)?-production\.up\.railway\.app/gi, 'https://credlink-20-production.up.railway.app');
+  return cleaned;
 }
 
 export async function readJson(response: Response): Promise<unknown> {
