@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { createDataClient, SESSION_EXPIRED_EVENT, setLiveActor } from '@/lib/data';
 import type { ActorContext, DataClient } from '@/lib/data/types';
@@ -124,6 +124,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   const [liveUser, setLiveUser] = useState<AuthUserRecord | null>(null);
   const [liveMemberships, setLiveMemberships] = useState<OrganizationMembership[]>([]);
   const [bootstrapNonce, setBootstrapNonce] = useState(0);
+  // True when the user explicitly picked a preview context this session, so the
+  // live-session bootstrap only clears selections restored from stale storage.
+  const explicitPreviewRef = useRef(false);
 
   // Restore the preview context selection (demo mode only).
   useEffect(() => {
@@ -149,6 +152,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           setLiveUser(payload.data.user as AuthUserRecord);
           setLiveMemberships(Array.isArray(payload.data.memberships) ? (payload.data.memberships as OrganizationMembership[]) : []);
           setLiveStatus('authenticated');
+          // A valid live session takes precedence over a stale preview selection
+          // left in storage from a previous visit. An explicit pick made this
+          // session is preserved.
+          if (!explicitPreviewRef.current) {
+            setSelectedKey(null);
+            try {
+              window.localStorage.removeItem(STORAGE_KEY);
+            } catch {
+              // Storage unavailable: the in-memory selection is already cleared.
+            }
+          }
         } else {
           setLiveUser(null);
           setLiveMemberships([]);
@@ -176,6 +190,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const enter = useCallback((account: DemoAccountSeed) => {
+    explicitPreviewRef.current = true;
     setSelectedKey(account.key);
     try {
       window.localStorage.setItem(STORAGE_KEY, account.key);
@@ -241,6 +256,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
 
   const leave = useCallback(async () => {
     if (mode === 'demo') {
+      explicitPreviewRef.current = false;
       setSelectedKey(null);
       try {
         window.localStorage.removeItem(STORAGE_KEY);

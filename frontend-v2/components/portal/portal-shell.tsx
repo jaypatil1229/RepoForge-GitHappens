@@ -163,7 +163,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
         <div className="flex items-center justify-center gap-2 border-b border-warning-700/20 bg-warning-50 px-4 py-1.5 text-center text-micro text-warning-700">
           <Info aria-hidden className="size-3.5 shrink-0" />
           <p>
-            Design preview — using backend test services and demo data, scoped as{' '}
+            Synthetic demo data — no backend session, scoped as{' '}
             <span className="font-medium">{profile.fullName}</span> ({roleLabel[role]}).
           </p>
         </div>

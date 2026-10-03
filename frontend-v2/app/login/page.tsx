@@ -58,15 +58,8 @@ export default function LoginPage() {
 
     setPending(true);
     try {
-      // A seeded preview account opens the synthetic context; anything else is a real sign-in.
-      const preview = previewAccounts.find(
-        (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
-      );
-      if (preview) {
-        enter(preview);
-        router.push('/portal');
-        return;
-      }
+      // Always authenticate through the backend. Preview contexts are opt-in only,
+      // via the explicit buttons below, and must never intercept a real sign-in.
       const result = await signIn({ email: email.trim(), password, simulateOffline: offline });
       if (!result.ok) {
         setFeedback({
