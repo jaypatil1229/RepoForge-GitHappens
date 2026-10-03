@@ -130,6 +130,7 @@ export default function IssueCredentialPage() {
     setBusy(true);
     const response = await client.issueCredential({
       subjectId,
+      issuerOrgId: effectiveOrg.id,
       domain: domain as CredentialDomain,
       credentialType: credentialType.trim(),
       title: title.trim(),

@@ -90,7 +90,7 @@ export default function RegisterPage() {
           'Only an approved issuer with a matching credential type can sign a record.',
         ]}
         title={mode === 'CITIZEN' ? 'Account created' : 'Account created — one step remains'}
-        description="This preview does not store a session or issue a token, so the next step is described rather than performed."
+        description="Your account has been created. Sign in to open the portal."
         footer={
           <p>
             <Link href="/login" className="font-medium text-forest-800 hover:text-forest-700">
@@ -210,7 +210,7 @@ export default function RegisterPage() {
         'Issuer authorization is a separate grant from organization approval.',
       ]}
       title="Create an account"
-      description="Registration runs against the mock data layer in this build. It demonstrates the real validation and role rules without creating anything persistent."
+      description="Create a citizen or institution account. Institution accounts start PENDING until a network administrator approves them, and self-assigned administrator roles are downgraded to citizen."
       footer={
         <p>
           Already have an account?{' '}

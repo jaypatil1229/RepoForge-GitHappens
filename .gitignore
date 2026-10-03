@@ -22,3 +22,6 @@ node_modules/
 dist/
 .next/
 *.tsbuildinfo
+.npm-cache
+.npm-cache/
+**/.npm-cache/

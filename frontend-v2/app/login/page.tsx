@@ -10,7 +10,7 @@ import { Banner } from '@/components/ui/surface';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Input } from '@/components/ui/field';
 import { previewAccounts, TransportError, type DemoAccountSeed } from '@/lib/data';
-import { useDataClient, useDemo } from '@/lib/demo/demo-provider';
+import { useDemo } from '@/lib/demo/demo-provider';
 import type { AccountRole } from '@/lib/types';
 
 const roleLabel: Record<AccountRole, string> = {
@@ -31,8 +31,7 @@ interface Feedback {
 
 export default function LoginPage() {
   const router = useRouter();
-  const client = useDataClient();
-  const { enter } = useDemo();
+  const { enter, signIn } = useDemo();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,8 +58,10 @@ export default function LoginPage() {
 
     setPending(true);
     try {
-      const result = await client.signIn({ email: email.trim(), password, simulateOffline: offline });
-      if (!result.success) {
+      // Always authenticate through the backend. Preview contexts are opt-in only,
+      // via the explicit buttons below, and must never intercept a real sign-in.
+      const result = await signIn({ email: email.trim(), password, simulateOffline: offline });
+      if (!result.ok) {
         setFeedback({
           tone: 'danger',
           title: result.error ?? 'Sign-in failed.',
@@ -69,14 +70,6 @@ export default function LoginPage() {
         });
         return;
       }
-      const account = previewAccounts.find(
-        (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
-      );
-      if (!account) {
-        setFeedback({ tone: 'warning', title: 'That account is not part of the preview set.' });
-        return;
-      }
-      enter(account);
       router.push('/portal');
     } catch (error) {
       if (error instanceof TransportError) {
@@ -102,7 +95,7 @@ export default function LoginPage() {
         'Every verification reports the checks it ran and consumes the consent it used.',
       ]}
       title="Open the portal"
-      description="This build is a frontend design preview. No authentication service is connected, no token is issued, and no session is stored."
+      description="Sign in with your CredLink account. Seeded preview contexts are also available below for a synthetic, non-authenticated walkthrough."
       footer={
         <p>
           Need an account?{' '}
@@ -130,7 +123,7 @@ export default function LoginPage() {
           label="Password"
           htmlFor="login-password"
           error={errors.password}
-          hint="Any password is accepted for the seeded preview accounts."
+          hint="Preview accounts accept any password. Live accounts use your real credentials."
         >
           <Input
             id="login-password"
