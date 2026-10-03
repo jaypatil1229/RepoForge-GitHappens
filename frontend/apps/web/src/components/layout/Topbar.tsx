@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, Search, Bell, ChevronDown, User, LogOut, ShieldAlert, HeartPulse, GraduationCap, Landmark, Briefcase, Shield, X, ScanLine } from 'lucide-react';
+import { Menu, Search, Bell, ChevronDown, User, LogOut, ShieldAlert, HeartPulse, GraduationCap, Landmark, Briefcase, Shield, X, Settings, Activity, ScanLine } from 'lucide-react';
 import { useRoleContext, deriveUserRole } from '../../hooks/useRoleContext';
 import { UserRole } from '../../types';
 import { Button } from '../ui/Button';
+import { CredLinkLogo } from '../ui/CredLinkLogo';
+import { cn, getDomainBadgeStyle } from '../../lib/utils';
+import { Badge } from '../ui/Badge';
 import { QrScanner } from '../qr/QrScanner';
 
 interface TopbarProps {
@@ -19,29 +22,21 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
   const { currentUser, switchRole, logout, memberships } = useRoleContext();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
+    setShowProfileMenu(false);
     await logout();
     router.push('/login');
-  };
-
-  const getPageTitle = (path: string) => {
-    if (path.startsWith('/dashboard')) return 'Dashboard';
-    if (path.startsWith('/credentials')) return 'Credentials';
-    if (path.startsWith('/verification')) return 'Verification';
-    if (path.startsWith('/trust-registry')) return 'Trust Registry';
-    if (path.startsWith('/organizations')) return 'Issuers';
-    if (path.startsWith('/audit')) return 'Audit Log';
-    return 'Portal';
   };
 
   const getPageTitleFull = (path: string) => {
     if (path.startsWith('/dashboard')) return 'Dashboard Overview';
     if (path.startsWith('/credentials')) return 'Credential Management';
     if (path.startsWith('/verification')) return 'Verification Center';
-    if (path.startsWith('/trust-registry')) return 'Trust Registry';
-    if (path.startsWith('/organizations')) return 'Issuer Directory';
+    if (path.startsWith('/organizations')) return 'Issuers';
     if (path.startsWith('/audit')) return 'Audit & Activity Log';
     return 'Admin Portal';
   };
@@ -55,6 +50,8 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
   ];
 
   const userRole = currentUser?.role || 'CITIZEN';
+  const orgName = currentUser?.organizationName || 'Unaffiliated Citizen';
+  const domainBadge = getDomainBadgeStyle(userRole);
 
   const availableRoles = roles.filter((r) => {
     if (!currentUser) return false;
@@ -62,31 +59,49 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
     return memberships.some((m) => deriveUserRole(undefined, m.organization?.domain) === r.role);
   });
 
+  const getDomainIcon = (role: string) => {
+    switch (role) {
+      case 'HOSPITAL':
+        return <HeartPulse className="w-4 h-4 text-teal-500" />;
+      case 'COLLEGE':
+        return <GraduationCap className="w-4 h-4 text-blue-500" />;
+      case 'BANK':
+        return <Landmark className="w-4 h-4 text-emerald-500" />;
+      case 'EMPLOYER':
+        return <Briefcase className="w-4 h-4 text-indigo-500" />;
+      default:
+        return <Shield className="w-4 h-4 text-forest-800 dark:text-sage-500" />;
+    }
+  };
+
+  const getUserInitials = () => {
+    if (!currentUser?.name) return 'U';
+    const parts = currentUser.name.split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0][0].toUpperCase();
+  };
+
   return (
     <header className="h-14 md:h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-3 md:px-6 flex items-center justify-between">
-      {/* Left: Mobile Menu & Page Title */}
+      {/* ===== LEFT SIDE ===== */}
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        {/* Hamburger — opens sidebar on mobile for extra nav (trust registry, etc.) */}
-        <button
-          onClick={onToggleMobileSidebar}
-          className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 md:hidden rounded-xl active:bg-slate-100 dark:active:bg-slate-800 transition-colors"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+        {/* Mobile: CredLink Logo */}
+        <Link href="/dashboard" className="md:hidden flex items-center">
+          <CredLinkLogo size="sm" showText />
+        </Link>
 
-        <div className="min-w-0">
-          {/* Short title on mobile, full title on desktop */}
-          <h2 className="text-[15px] md:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-            <span className="md:hidden">{getPageTitle(pathname)}</span>
-            <span className="hidden md:inline">{getPageTitleFull(pathname)}</span>
+        {/* Desktop: Page title */}
+        <div className="hidden md:block min-w-0">
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+            {getPageTitleFull(pathname)}
           </h2>
-          <p className="hidden md:block text-xs text-slate-400 dark:text-slate-500 font-medium">
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
             CredLink Portal
           </p>
         </div>
       </div>
 
-      {/* Right Controls */}
+      {/* ===== RIGHT CONTROLS ===== */}
       <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
         {/* Scan QR Button — Citizens Only */}
         {userRole === 'CITIZEN' && (
@@ -100,21 +115,20 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
           </button>
         )}
 
-        {/* Role Switcher — compact on mobile */}
-        <div className="relative">
+        {/* Role Switcher — desktop only */}
+        <div className="relative hidden md:block">
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 rounded-lg md:rounded-md border border-slate-200/80 dark:border-slate-700 text-xs md:text-sm font-medium text-slate-800 dark:text-slate-200 transition-colors active:bg-slate-200 dark:active:bg-slate-700"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 rounded-md border border-slate-200/80 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-200 transition-colors"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="hidden sm:inline text-xs">Role:</span>
+            <span className="text-xs">Role:</span>
             <span className="font-bold text-slate-900 dark:text-slate-100 text-xs">{userRole}</span>
             {availableRoles.length > 1 && <ChevronDown className="w-3 h-3 text-slate-400" />}
           </button>
 
           {showRoleMenu && availableRoles.length > 0 && (
             <>
-              {/* Backdrop to close on tap */}
               <div className="fixed inset-0 z-40" onClick={() => setShowRoleMenu(false)} />
               <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 animate-fade-in">
                 <div className="px-3 py-1.5 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
@@ -127,7 +141,7 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
                       switchRole(r.role);
                       setShowRoleMenu(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-3 md:py-2 text-sm text-left active:bg-slate-100 dark:active:bg-slate-800 ${
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left active:bg-slate-100 dark:active:bg-slate-800 ${
                       userRole === r.role ? 'font-semibold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
                     }`}
                   >
@@ -144,7 +158,7 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 md:p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 rounded-lg md:rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors active:bg-slate-200 dark:active:bg-slate-700"
+            className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors active:bg-slate-200 dark:active:bg-slate-700"
           >
             <Bell className="w-[18px] h-[18px] md:w-4 md:h-4" />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-indigo-600 rounded-full" />
@@ -177,13 +191,129 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
           )}
         </div>
 
-        {/* User Profile / Logout — icon only on mobile */}
-        <Link href="/login" onClick={handleSignOut}>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8 md:h-9 px-2 md:px-3">
+        {/* Desktop: Sign Out Button */}
+        <button onClick={handleSignOut} className="hidden md:block">
+          <Button variant="outline" size="sm" className="text-xs gap-1.5 h-9 px-3">
             <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
+            <span>Sign Out</span>
           </Button>
-        </Link>
+        </button>
+
+        {/* ===== MOBILE: Profile Avatar ===== */}
+        <div className="relative md:hidden" ref={profileMenuRef}>
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className={cn(
+              'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-150 border-2',
+              showProfileMenu
+                ? 'bg-forest-800 text-white border-forest-600 scale-105'
+                : 'bg-gradient-to-br from-forest-700 to-forest-900 text-white border-forest-600/50 active:scale-95'
+            )}
+          >
+            {getUserInitials()}
+          </button>
+
+          {/* Profile Dropdown — mobile */}
+          {showProfileMenu && (
+            <>
+              <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]" onClick={() => setShowProfileMenu(false)} />
+              <div
+                className="fixed right-3 top-[3.75rem] z-50 w-[calc(100vw-1.5rem)] max-w-[320px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-fade-in"
+              >
+                {/* User Info Header */}
+                <div className="px-4 pt-4 pb-3 bg-gradient-to-br from-forest-50 to-slate-50 dark:from-forest-950/30 dark:to-slate-900 border-b border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-forest-700 to-forest-900 flex items-center justify-center text-white text-lg font-bold shrink-0 shadow-md">
+                      {getUserInitials()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {currentUser?.name || 'Demo User'}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {currentUser?.email || 'demo@credlink.network'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Context */}
+                <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Active Context
+                    </span>
+                    {getDomainIcon(userRole)}
+                  </div>
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 rounded-xl">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {orgName}
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        {userRole}
+                      </span>
+                      <Badge variant="neutral" size="sm" className={cn('text-[10px] py-0 px-1.5', domainBadge.bg, domainBadge.text, domainBadge.border)}>
+                        {userRole === 'HOSPITAL' ? 'Healthcare' : domainBadge.label.split('/')[0]}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Role Switcher — mobile */}
+                {availableRoles.length > 1 && (
+                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 block">
+                      Switch Domain
+                    </span>
+                    <div className="space-y-1">
+                      {availableRoles.map((r) => (
+                        <button
+                          key={r.role}
+                          onClick={() => {
+                            switchRole(r.role);
+                            setShowProfileMenu(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors',
+                            userRole === r.role
+                              ? 'font-semibold bg-forest-50 dark:bg-forest-950/30 text-forest-900 dark:text-sage-400 border border-forest-200 dark:border-forest-800'
+                              : 'text-slate-700 dark:text-slate-300 active:bg-slate-100 dark:active:bg-slate-800'
+                          )}
+                        >
+                          {r.icon}
+                          <span className="text-[13px]">{r.label}</span>
+                          {userRole === r.role && (
+                            <span className="ml-auto w-2 h-2 rounded-full bg-emerald-500" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Network Status */}
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                    <span className="text-[11px] font-medium">Network: <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Operational</span></span>
+                  </div>
+                </div>
+
+                {/* Sign Out */}
+                <div className="p-3">
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 font-semibold text-sm active:bg-red-100 dark:active:bg-red-900/40 transition-colors border border-red-200/60 dark:border-red-800/40"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Global QR Scanner Modal */}
@@ -191,7 +321,6 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
         onConsentComplete={() => {
-          // If on verification or dashboard page, reload state or trigger event
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('credlink-consent-updated'));
           }

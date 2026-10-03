@@ -3,7 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { env } from './config/env';
-import healthRoutes from './routes/health.routes';
 import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
 import organizationRoutes from './routes/organization.routes';
@@ -20,26 +19,28 @@ import { errorHandler } from './middleware/errorHandler';
 const app: Express = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // CORS configuration restricted to authorized origins
 const normalizeOrigin = (url?: string) => (url ? url.replace(/\/+$/, '').toLowerCase() : '');
-const frontendClean = normalizeOrigin(env.FRONTEND_URL);
-const frontendSecure = frontendClean.replace(/^http:\/\//, 'https://');
-const frontendInsecure = frontendClean.replace(/^https:\/\//, 'http://');
 
 const allowedOrigins = new Set(
   [
-    frontendClean,
-    frontendSecure,
-    frontendInsecure,
-    'https://cred-link-connect.vercel.app',
-    'http://cred-link-connect.vercel.app',
+    env.FRONTEND_URL,
     'http://localhost:3000',
-    'http://localhost:5000',
+    'http://localhost:3001',
+    'http://localhost:3002',
     'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000',
-  ].filter(Boolean)
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
+    'https://credlink.network',
+  ]
+    .filter(Boolean)
+    .map((origin) => normalizeOrigin(origin))
 );
 
 app.use(
@@ -48,29 +49,40 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
       const normalized = normalizeOrigin(origin);
-      if (allowedOrigins.has(normalized) || normalized.endsWith('.vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS policy blocked access from origin: ${origin}`));
+      if (
+        allowedOrigins.has(normalized) ||
+        normalized.endsWith('.vercel.app') ||
+        normalized.includes('vercel.app') ||
+        normalized.includes('localhost') ||
+        normalized.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
       }
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
+    exposedHeaders: ['Authorization'],
+    maxAge: 86400,
   })
 );
 
-// Request logging
-if (env.NODE_ENV !== 'test') {
-  app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
-}
-
-// Body parsing middleware
+// Request body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Mount API routes
-app.use('/api', healthRoutes);
+// HTTP request logging
+if (env.NODE_ENV !== 'test') {
+  app.use(morgan('combined'));
+}
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Mount modular API domain routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/organizations', organizationRoutes);
@@ -87,7 +99,7 @@ app.use('/api/qr', qrRoutes);
 // Catch-all 404 handler
 app.use(notFoundHandler);
 
-// Centralized error handler
+// Centralized error boundary middleware
 app.use(errorHandler);
 
 export default app;

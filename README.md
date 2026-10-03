@@ -344,7 +344,7 @@ CredLink aims to provide an interoperable foundation for trusted digital records
 
 ---
 
-**Repository:** [github.com/bhumii-10/CredLink-2.0](https://github.com/bhumii-10/CredLink-2.0)
+**Repository:** [github.com/jaypatil1229/cred-link](https://github.com/jaypatil1229/cred-link)
 
 **Project:** CredLink  
 **Category:** Digital Identity · Verifiable Credentials · Digital Public Infrastructure · Identity & Verification

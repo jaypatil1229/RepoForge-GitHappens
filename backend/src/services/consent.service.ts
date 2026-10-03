@@ -255,7 +255,6 @@ export class ConsentService {
         throw new AppError(`Cannot approve consent request: ${eligibility.reason || 'Citizen is ineligible'}`, 400);
       }
     }
-
     const newStatus = input.action === 'APPROVE' ? 'APPROVED' : 'DENIED';
     const grantedAt = input.action === 'APPROVE' ? new Date().toISOString() : null;
     const finalApprovedClaims = input.action === 'APPROVE'

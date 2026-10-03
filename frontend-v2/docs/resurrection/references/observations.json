@@ -1,0 +1,180 @@
+{
+  "capturedAt": "2026-10-03T03:08:12.428Z",
+  "sources": [
+    {
+      "name": "linear",
+      "url": "https://linear.app/",
+      "status": "captured",
+      "title": "Linear – The system for product development",
+      "headings": [
+        "The product development system for teams and agentsThe product developmentsystem for teams and agentsThe product development system for teams and agents",
+        "A new species of product tool. Purpose-built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products.",
+        "Intakeand integrations",
+        "Planningand monitoring",
+        "AI andautomations",
+        "Build, review,and ship",
+        "Changelog",
+        "Built for the future. Available today."
+      ],
+      "displayFont": "\"Inter Variable\", \"SF Pro Display\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Open Sans\", \"Helvetica Neue\", sans-serif",
+      "canvas": "rgb(8, 9, 10)"
+    },
+    {
+      "name": "apple",
+      "url": "https://www.apple.com/",
+      "status": "captured",
+      "title": "Apple",
+      "headings": [
+        "Apple",
+        "Shop",
+        "Quick Links",
+        "Shop Special Stores",
+        "Explore Mac",
+        "Shop Mac",
+        "More from Mac",
+        "Explore iPad",
+        "Shop iPad",
+        "More from iPad",
+        "Explore iPhone",
+        "Shop iPhone"
+      ],
+      "displayFont": "\"SF Pro Text\", \"SF Pro Icons\", \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+      "canvas": "rgb(255, 255, 255)"
+    },
+    {
+      "name": "stripe",
+      "url": "https://stripe.com/",
+      "status": "captured",
+      "title": "Stripe | Financial Infrastructure to Grow Your Revenue",
+      "headings": [
+        "Financial infrastructure to grow your revenue. Accept payments, offer financial services and implement custom revenue models – from your first transaction to your billionth.",
+        "Financial infrastructure to grow your revenue. Accept payments, offer financial services and implement custom revenue models – from your first transaction to your billionth.",
+        "Flexible solutions for every business model.",
+        "The backbone of global commerce",
+        "Powering businesses of all sizes.",
+        "Reliable, extensible infrastructure for every stack.",
+        "What's happening"
+      ],
+      "displayFont": "sohne-var, \"SF Pro Display\", sans-serif",
+      "canvas": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "name": "framer",
+      "url": "https://www.framer.com/",
+      "status": "captured",
+      "title": "Framer: AI design agent",
+      "headings": [
+        "Framer is the design agent for every step from idea to launch",
+        "Agents that work alongside you, not instead of you",
+        "Not just vibes, a full platform",
+        "Shipped with Framer",
+        "Trusted by teams shipping big sites",
+        "Built on a community that isn’t going anywhere",
+        "Your next idea starts here"
+      ],
+      "displayFont": "\"GT Walsheim Medium\", \"GT Walsheim Medium Placeholder\", sans-serif",
+      "canvas": "rgb(0, 0, 0)"
+    },
+    {
+      "name": "vercel",
+      "url": "https://vercel.com/",
+      "status": "captured",
+      "title": "Agentic Infrastructure - Vercel",
+      "headings": [
+        "Agentic Infrastructure",
+        "Build agents on infrastructure that thinks like them",
+        "Ship apps that scale from zero to millions instantly",
+        "Host platforms that serve every customer",
+        "Recently shipped",
+        "Built by you, or your agents",
+        "Agent Stack",
+        "Core Platform",
+        "Security",
+        "Tools",
+        "Frameworks",
+        "SDKs"
+      ],
+      "displayFont": "GeistSans, \"GeistSans Fallback\"",
+      "canvas": "rgb(250, 250, 250)"
+    },
+    {
+      "name": "raycast",
+      "url": "https://www.raycast.com/",
+      "status": "captured",
+      "title": "Raycast - Your shortcut to everything",
+      "headings": [
+        "Your shortcut to everything.",
+        "It’s not about saving time.",
+        "There’s an extension for that.",
+        "Meet your new virtual assistant",
+        "Built for professionals like you.",
+        "Don't repeat yourself.",
+        "Stay in the loop.",
+        "Take the short way."
+      ],
+      "displayFont": "Inter, \"Inter Fallback\", sans-serif",
+      "canvas": "rgb(7, 8, 10)"
+    },
+    {
+      "name": "lapa",
+      "url": "https://www.lapa.ninja/",
+      "status": "captured",
+      "title": "Attention Required! | Cloudflare",
+      "headings": [
+        "Sorry, you have been blocked",
+        "You are unable to access lapa.ninja",
+        "Why have I been blocked?",
+        "What can I do to resolve this?"
+      ],
+      "displayFont": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen, Ubuntu, \"Helvetica Neue\", Arial, sans-serif",
+      "canvas": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "name": "godly",
+      "url": "https://godly.website/",
+      "status": "captured",
+      "title": "Recent — Design Inspiration",
+      "headings": [
+        "Browse",
+        "Resources",
+        "Design",
+        "Design jobs"
+      ],
+      "displayFont": "Inter, ui-sans-serif, system-ui, sans-serif",
+      "canvas": "rgb(255, 255, 255)"
+    },
+    {
+      "name": "awwwards",
+      "url": "https://www.awwwards.com/websites/animation/",
+      "status": "captured",
+      "title": "Best Animation Websites | Web Design Inspiration",
+      "headings": [
+        "Animation"
+      ],
+      "displayFont": "\"Inter Tight\"",
+      "canvas": "rgb(248, 248, 248)"
+    },
+    {
+      "name": "siteinspire",
+      "url": "https://www.siteinspire.com/",
+      "status": "captured",
+      "title": "Best Website Design Inspiration | Siteinspire",
+      "headings": [
+        "A showcase of the web’s finest design + talent"
+      ],
+      "displayFont": "fontSctoGroteskA, \"fontSctoGroteskA Fallback\"",
+      "canvas": "rgb(255, 255, 255)"
+    },
+    {
+      "name": "minimal",
+      "url": "https://minimal.gallery/",
+      "status": "captured",
+      "title": "Minimal Gallery – Hand-picked web design inspiration, premium templates, tools and more",
+      "headings": [
+        "For the love of beautiful & functional websites"
+      ],
+      "displayFont": "Inter, sans-serif",
+      "canvas": "rgb(0, 0, 0)"
+    }
+  ]
+}
