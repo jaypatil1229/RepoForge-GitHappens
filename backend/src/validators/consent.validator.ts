@@ -17,6 +17,20 @@ export const consentDomainEnum = z.preprocess(
 );
 export const consentStatusEnum = z.enum(['PENDING', 'APPROVED', 'DENIED', 'REVOKED', 'EXPIRED']);
 
+export const batchRequestConsentSchema = z
+  .object({
+    citizenEmails: z.array(z.string().email('Invalid citizen email address')).min(1, 'At least one citizen email is required'),
+    requestingOrgId: z.string().uuid().optional(),
+    documentTypes: z.array(z.string()).default([]),
+    requestedClaims: z.array(z.string()).default([]),
+    domain: consentDomainEnum.default('all'),
+    purpose: z.string().min(3, 'Purpose must be at least 3 characters long'),
+    expiresAt: z.string().datetime().optional().nullable(),
+  })
+  .strict();
+
+export type BatchRequestConsentInput = z.infer<typeof batchRequestConsentSchema>;
+
 export const requestConsentSchema = z
   .object({
     citizenId: z.string().uuid(),

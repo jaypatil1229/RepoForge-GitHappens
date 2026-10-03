@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase';
 import {
   RequestConsentInput,
+  BatchRequestConsentInput,
   GrantConsentInput,
   RespondConsentInput,
   GetConsentsQuery,
@@ -40,6 +41,133 @@ export class ConsentService {
       expiresAt: consent.expires_at || null,
       createdAt: consent.created_at,
       updatedAt: consent.updated_at,
+    };
+  }
+
+  /**
+   * Gmail-style multi-citizen batch request:
+   * Dispatches individualized consent requests to each citizen email.
+   */
+  async batchRequestConsent(actor: AuthUser, input: BatchRequestConsentInput) {
+    const { citizenEmails, documentTypes, requestedClaims, purpose, domain, expiresAt } = input;
+    let requestingOrgId = input.requestingOrgId;
+
+    if (actor.role !== 'ADMIN') {
+      if (!actor.organizationId) {
+        throw new AppError('Forbidden. Actor has no active organization membership.', 403);
+      }
+      requestingOrgId = actor.organizationId;
+    } else {
+      if (!requestingOrgId) {
+        requestingOrgId = actor.organizationId || '40f481fc-4c6e-483d-901c-8ddbb35052cc';
+      }
+    }
+
+    const { data: org } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name, code')
+      .eq('id', requestingOrgId)
+      .maybeSingle();
+
+    if (!org) {
+      throw new AppError('Requesting organization not found', 404);
+    }
+
+    const combinedClaims = Array.from(new Set([...(requestedClaims || []), ...(documentTypes || [])]));
+    const results = [];
+
+    for (const email of citizenEmails) {
+      const cleanEmail = email.trim().toLowerCase();
+      // Look up citizen profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email, full_name')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (!profile) {
+        results.push({
+          email: cleanEmail,
+          status: 'NOT_FOUND',
+          message: `Citizen profile for ${cleanEmail} not registered on CredLink network.`
+        });
+        continue;
+      }
+
+      // Check for existing pending request to avoid duplicates
+      const { data: existing } = await supabaseAdmin
+        .from('consents')
+        .select('id, status')
+        .eq('citizen_id', profile.id)
+        .eq('requesting_org_id', requestingOrgId)
+        .eq('status', 'PENDING')
+        .maybeSingle();
+
+      if (existing) {
+        results.push({
+          email: cleanEmail,
+          citizenId: profile.id,
+          citizenName: profile.full_name,
+          consentId: existing.id,
+          status: 'ALREADY_PENDING',
+          message: 'An active pending request already exists for this citizen.'
+        });
+        continue;
+      }
+
+      // Create consent request
+      const { data: newConsent, error: insertError } = await supabaseAdmin
+        .from('consents')
+        .insert({
+          citizen_id: profile.id,
+          requesting_org_id: requestingOrgId,
+          domain: domain || 'all',
+          purpose,
+          requested_claims: combinedClaims,
+          status: 'PENDING',
+          expires_at: expiresAt || null,
+        })
+        .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email)')
+        .single();
+
+      if (insertError || !newConsent) {
+        results.push({
+          email: cleanEmail,
+          status: 'ERROR',
+          message: insertError?.message || 'Failed to create consent request'
+        });
+        continue;
+      }
+
+      // Audit log
+      try {
+        await supabaseAdmin.from('audit_logs').insert({
+          actor_id: actor.id,
+          organization_id: requestingOrgId,
+          event_type: 'CONSENT_REQUESTED',
+          action: `Requested document verification from citizen ${profile.full_name} (${cleanEmail})`,
+          domain: domain || 'all',
+          outcome: 'SUCCESS',
+          target_resource_id: newConsent.id,
+          metadata: { citizenEmail: cleanEmail, requestedClaims: combinedClaims, purpose },
+        });
+      } catch (auditErr) {
+        console.error('[ConsentService] Batch audit log warning:', auditErr);
+      }
+
+      results.push({
+        email: cleanEmail,
+        citizenId: profile.id,
+        citizenName: profile.full_name,
+        consent: this.formatConsent(newConsent),
+        status: 'DISPATCHED'
+      });
+    }
+
+    return {
+      totalDispatched: results.filter((r) => r.status === 'DISPATCHED').length,
+      totalRequested: citizenEmails.length,
+      requests: results
     };
   }
 

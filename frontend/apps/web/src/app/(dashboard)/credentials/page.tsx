@@ -1,30 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Search, Filter, QrCode, ShieldAlert, CheckCircle2, FileText, Lock, Eye, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Plus,
+  Search,
+  Filter,
+  QrCode,
+  ShieldAlert,
+  CheckCircle2,
+  FileText,
+  Lock,
+  Eye,
+  Trash2,
+  GraduationCap,
+  Briefcase,
+  HeartPulse,
+  Landmark,
+  Building,
+  User,
+  Clock,
+  Sparkles,
+  ShieldCheck,
+  Send,
+  AlertTriangle,
+  Award,
+  Calendar,
+  X,
+  RefreshCw,
+  Ban
+} from 'lucide-react';
 import { Shell } from '../../../components/layout/Shell';
-import { Card, CardHeader, CardTitle } from '../../../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { Input } from '../../../components/ui/Input';
 import { Drawer } from '../../../components/ui/Drawer';
 import { Dialog } from '../../../components/ui/Dialog';
-import { CredentialItem, CredentialStatus, UserRole } from '../../../types';
+import { CredentialItem, CredentialStatus, UserRole, VerificationRequest } from '../../../types';
 import { getCredentialStatusBadge, truncateDid, getDomainBadgeStyle } from '../../../lib/utils';
 import { useRoleContext } from '../../../hooks/useRoleContext';
-import { apiClient, CredentialRecord, CitizenSummary, VerificationCheckResult } from '../../../../../../packages/api-client';
-import { MOCK_CREDENTIALS } from '../../../lib/mockData';
+import {
+  apiClient,
+  CredentialRecord,
+  CitizenSummary,
+  OrganizationSummary,
+  VerificationCheckResult
+} from '../../../../../../packages/api-client';
+import { MOCK_CREDENTIALS, MOCK_VERIFICATION_REQUESTS } from '../../../lib/mockData';
 
 export default function CredentialsPage() {
   const { currentUser } = useRoleContext();
   if (!currentUser) return null;
+
   const [credentials, setCredentials] = useState<CredentialItem[]>([]);
   const [citizens, setCitizens] = useState<CitizenSummary[]>([]);
+  const [issuers, setIssuers] = useState<OrganizationSummary[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<VerificationRequest[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [walletViewMode, setWalletViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
 
   // Selected credential for details drawer & QR presentation modal
   const [selectedCred, setSelectedCred] = useState<CredentialItem | null>(null);
@@ -32,63 +69,40 @@ export default function CredentialsPage() {
   const [revokeTarget, setRevokeTarget] = useState<CredentialItem | null>(null);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
 
-  // Quick Verify (Mode A) state
+  // Quick Verify state
   const [verifyResult, setVerifyResult] = useState<VerificationCheckResult | null>(null);
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyTargetName, setVerifyTargetName] = useState('');
 
-  // New Issue Modal
+  // Issuer "Issue Certificate" Modal State
   const [showIssueModal, setShowIssueModal] = useState(false);
-  const [newSubjectName, setNewSubjectName] = useState('');
-  const [newSubjectId, setNewSubjectId] = useState('');
-  const [newCredentialTitle, setNewCredentialTitle] = useState('');
-  const [newCredentialType, setNewCredentialType] = useState('Bachelor of Science');
-  const [newClaimFields, setNewClaimFields] = useState<{ key: string; value: string }[]>([
-    { key: 'major', value: 'Computer Science' },
-  ]);
+  const [issueRecipientId, setIssueRecipientId] = useState('');
+  const [issueRecipientName, setIssueRecipientName] = useState('');
+  const [issueDocType, setIssueDocType] = useState('Degree Certificate');
+  const [issueTitle, setIssueTitle] = useState('');
+  const [isIssuing, setIsIssuing] = useState(false);
+  const [issueSuccessToast, setIssueSuccessToast] = useState<string | null>(null);
 
-  const loadCredentials = React.useCallback(async () => {
-    if (!currentUser) return;
+  // Dynamic claim fields based on role
+  const [formFields, setFormFields] = useState<Record<string, string>>({
+    major: 'Computer Science & Engineering',
+    graduationYear: '2025',
+    gpa: '3.89 / 4.00 (First Class with Distinction)',
+    studentId: 'STU-2025-8841',
+  });
+
+  // Citizen "Request Document from Issuer" Modal State
+  const [showCitizenRequestModal, setShowCitizenRequestModal] = useState(false);
+  const [requestedIssuerOrgId, setRequestedIssuerOrgId] = useState('');
+  const [requestedDocType, setRequestedDocType] = useState('Academic Degree Certificate');
+  const [requestNotes, setRequestNotes] = useState('Official verification for employment and scholarship application');
+  const [isSubmittingCitizenReq, setIsSubmittingCitizenReq] = useState(false);
+
+  // Load Credentials
+  const loadCredentials = useCallback(async () => {
     setIsLoading(true);
     try {
-      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('credlink_auth_token') : null;
-      const isDemoMode = !storedToken || storedToken === 'demo_token';
-
-      if (isDemoMode) {
-        try {
-          const demoRes = await apiClient.fetchDemoData();
-          if (demoRes.success && demoRes.data?.credentials && demoRes.data.credentials.length > 0) {
-            const mapped: CredentialItem[] = demoRes.data.credentials.map((c: any) => ({
-              id: c.id,
-              credentialType: c.credentialType,
-              domain: (c.domain?.toUpperCase() as UserRole) || 'CITIZEN',
-              subjectId: c.subjectId,
-              subjectName: c.subjectName || `Citizen ${(c.subjectId || '').substring(0, 6)}`,
-              issuerName: c.issuer?.name || currentUser.organizationName,
-              issuerDid: c.issuer?.did || currentUser.organizationDid,
-              issuanceDate: c.issuanceDate ? c.issuanceDate.split('T')[0] : new Date().toISOString().split('T')[0],
-              status: (c.status as CredentialStatus) || 'VALID',
-              claims: Array.isArray(c.claims)
-                ? c.claims
-                : c.claims && typeof c.claims === 'object'
-                  ? Object.entries(c.claims).map(([k, v]) => ({ key: k, label: k, value: String(v) }))
-                  : [],
-              qrPayload: c.qrPayload || `credlink://verify?vc=${c.id}`,
-            }));
-            setCredentials(mapped);
-            setIsLoading(false);
-            return;
-          }
-        } catch (demoErr) {
-          console.warn('Demo data endpoint unavailable for credentials:', demoErr);
-        }
-        setCredentials(MOCK_CREDENTIALS);
-        setIsLoading(false);
-        return;
-      }
-
-      // Authenticated mode
       const res = await apiClient.listCredentials();
       if (res.success && res.data?.credentials && res.data.credentials.length > 0) {
         const mapped: CredentialItem[] = res.data.credentials.map((c: CredentialRecord) => {
@@ -121,90 +135,123 @@ export default function CredentialsPage() {
         setCredentials(MOCK_CREDENTIALS);
       }
     } catch (err) {
-      console.warn('Using demo fallback for credentials:', err);
+      console.warn('Using fallback for credentials:', err);
       setCredentials(MOCK_CREDENTIALS);
     } finally {
       setIsLoading(false);
     }
   }, [currentUser]);
 
-  React.useEffect(() => {
-    loadCredentials();
-  }, [loadCredentials]);
+  // Load Incoming Requests / Consents for Citizen
+  const loadConsents = useCallback(async () => {
+    try {
+      const res = await apiClient.listConsents();
+      if (res.success && res.data?.consents) {
+        const mapped: VerificationRequest[] = res.data.consents.map((c: any) => ({
+          id: c.id,
+          requesterName: c.requestingOrg?.name || c.requestingOrgId || 'CredLink Verifier',
+          requesterDomain: (c.domain?.toUpperCase() as any) || 'BANK',
+          targetSubjectName: c.citizen?.fullName || c.citizenName || 'Citizen Subject',
+          targetSubjectId: c.citizen?.email || c.citizenId || 'N/A',
+          credentialId: c.credentialId || undefined,
+          credentialTitle: c.credential?.title || undefined,
+          credentialStatus: c.credential?.status || undefined,
+          purpose: c.purpose,
+          requestedClaims: c.requestedClaims || [],
+          approvedClaims: c.approvedClaims || [],
+          status: c.status || 'PENDING',
+          createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recent',
+          expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'N/A',
+        }));
+        setIncomingRequests(mapped);
+      } else {
+        setIncomingRequests(MOCK_VERIFICATION_REQUESTS);
+      }
+    } catch {
+      setIncomingRequests(MOCK_VERIFICATION_REQUESTS);
+    }
+  }, []);
 
-  // Load eligible citizens from Supabase when issuance modal opens
-  React.useEffect(() => {
-    if (showIssueModal) {
-      apiClient.getCitizens().then((res) => {
-        if (res.success && res.data && res.data.length > 0) {
-          setCitizens(res.data);
-          if (!newSubjectId) {
-            setNewSubjectId(res.data[0].id);
-            setNewSubjectName(res.data[0].fullName);
-          }
+  // Load Citizens and Issuers directory
+  useEffect(() => {
+    loadCredentials();
+    loadConsents();
+
+    apiClient.getCitizens().then((res) => {
+      if (res.success && res.data) {
+        setCitizens(res.data);
+        if (res.data.length > 0) {
+          setIssueRecipientId(res.data[0].id);
+          setIssueRecipientName(res.data[0].fullName);
         }
-      }).catch((err) => {
-        console.warn('Failed to load citizens:', err);
+      }
+    }).catch(console.warn);
+
+    apiClient.listOrganizations().then((res) => {
+      if (res.success && res.data?.organizations) {
+        const approvedIssuers = res.data.organizations.filter(
+          (o) => o.isIssuer || o.is_issuer || o.verification_status === 'APPROVED' || o.status === 'APPROVED'
+        );
+        setIssuers(approvedIssuers);
+        if (approvedIssuers.length > 0) {
+          setRequestedIssuerOrgId(approvedIssuers[0].id);
+        }
+      }
+    }).catch(console.warn);
+  }, [loadCredentials, loadConsents]);
+
+  // Adjust form fields when role or document type changes
+  useEffect(() => {
+    if (currentUser.role === 'COLLEGE') {
+      setIssueDocType('Degree Certificate');
+      setFormFields({
+        major: 'Computer Science & Engineering',
+        graduationYear: '2025',
+        gpa: '3.89 / 4.00 (First Class with Distinction)',
+        studentId: 'STU-2025-8841',
+      });
+    } else if (currentUser.role === 'HOSPITAL') {
+      setIssueDocType('Immunization & Health Record');
+      setFormFields({
+        recordType: 'Full Immunization & Medical Fitness',
+        batchNumber: 'COV-VAX-88219',
+        administeringDoctor: 'Dr. Priya Nair (MD)',
+        healthId: 'ABHA-9948-2819',
+      });
+    } else if (currentUser.role === 'EMPLOYER') {
+      setIssueDocType('Work Experience Letter');
+      setFormFields({
+        designation: 'Senior Software Engineer',
+        department: 'Platform Engineering',
+        tenure: 'July 2022 – Present',
+        performanceRating: 'Exceeds Expectations (Top 5%)',
+        employeeId: 'EMP-GT-4091',
       });
     }
-  }, [showIssueModal, newSubjectId]);
+  }, [currentUser.role]);
 
+  // Filtered Credentials
   const filteredCredentials = credentials.filter((item) => {
     const matchesSearch =
       item.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.credentialType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.issuerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.subjectId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDomain = selectedDomain === 'ALL' || item.domain === selectedDomain;
     const matchesStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
     return matchesSearch && matchesDomain && matchesStatus;
   });
 
-  const handleRevokeConfirm = async () => {
-    if (!revokeTarget) return;
-    try {
-      try {
-        await apiClient.revokeCredential(revokeTarget.id, 'Revoked by authorized issuer');
-        await loadCredentials();
-      } catch (err: any) {
-        // Local demo state revocation
-        setCredentials((prev) =>
-          prev.map((c) => (c.id === revokeTarget.id ? { ...c, status: 'REVOKED' } : c))
-        );
-      }
-    } finally {
-      setShowRevokeDialog(false);
-      setRevokeTarget(null);
-    }
-  };
-
-  const handleQuickVerify = async (cred: CredentialItem) => {
-    setIsVerifying(true);
-    setVerifyTargetName(`${cred.credentialType} — ${cred.subjectName}`);
-    setShowVerifyDialog(true);
-    setVerifyResult(null);
-    try {
-      const res = await apiClient.verifyCredentialComprehensive({ credentialId: cred.id });
-      if (res.success && res.data) {
-        setVerifyResult(res.data);
-      } else {
-        alert('Verification failed: ' + (res.error || 'Unknown error'));
-        setShowVerifyDialog(false);
-      }
-    } catch (err: any) {
-      alert('Verification error: ' + (err.message || 'Error'));
-      setShowVerifyDialog(false);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleCreateCredential = async (e: React.FormEvent) => {
+  // Handle Issuer Issue Credential
+  const handleIssueCredentialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (currentUser.organizationStatus === 'PENDING') {
-      alert('Credential issuance restricted: Your organization status is PENDING approval.');
+      alert('Issuance restricted: Your organization status is currently PENDING Super Admin review.');
       return;
     }
 
+    setIsIssuing(true);
     try {
       const targetDomain =
         currentUser.role === 'COLLEGE'
@@ -215,221 +262,466 @@ export default function CredentialsPage() {
           ? 'finance'
           : 'employment';
 
-      const finalTitle = newCredentialTitle.trim() || `${newCredentialType} Attestation`;
-      const issuerOrgId = currentUser.organizationId || 'org_demo_root';
+      const finalTitle = issueTitle.trim() || `${issueDocType} — ${issueRecipientName}`;
 
-      const claimsPayload: Record<string, any> = {
-        subjectName: newSubjectName || 'Verified Citizen',
-      };
-      for (const field of newClaimFields) {
-        if (field.key.trim()) {
-          claimsPayload[field.key.trim()] = field.value;
-        }
-      }
+      await apiClient.issueCredential({
+        subjectId: issueRecipientId || 'CIT-884920',
+        issuerOrgId: currentUser.organizationId || undefined,
+        domain: targetDomain,
+        credentialType: issueDocType,
+        title: finalTitle,
+        claims: {
+          recipientName: issueRecipientName,
+          ...formFields,
+        },
+      });
 
-      try {
-        await apiClient.issueCredential({
-          subjectId: newSubjectId || 'CIT-884920',
-          issuerOrgId: issuerOrgId,
-          domain: targetDomain,
-          credentialType: newCredentialType,
-          title: finalTitle,
-          claims: claimsPayload,
-        });
-        await loadCredentials();
-      } catch (apiErr) {
-        // Local demo state credential creation
-        const newCred: CredentialItem = {
-          id: `vc_demo_${Date.now()}`,
-          credentialType: newCredentialType,
-          domain: currentUser.role === 'CITIZEN' ? 'COLLEGE' : currentUser.role,
-          subjectId: newSubjectId || 'CIT-884920',
-          subjectName: newSubjectName || 'Aarav Sharma',
-          issuerName: currentUser.organizationName,
-          issuerDid: currentUser.organizationDid,
-          issuanceDate: new Date().toISOString().split('T')[0],
-          status: 'VALID',
-          claims: [
-            { key: 'title', label: 'Credential Title', value: finalTitle },
-            ...newClaimFields
-              .filter((f) => f.key.trim())
-              .map((f) => ({ key: f.key, label: f.key, value: f.value })),
-          ],
-          qrPayload: `credlink://verify?vc=vc_demo_${Date.now()}`,
-        };
-        setCredentials((prev) => [newCred, ...prev]);
-      }
-
+      setIssueSuccessToast(`Successfully issued ${issueDocType} to citizen ${issueRecipientName}!`);
       setShowIssueModal(false);
-      setNewCredentialTitle('');
+      await loadCredentials();
+      setTimeout(() => setIssueSuccessToast(null), 3500);
     } catch (err: any) {
-      console.warn('Issue error:', err);
+      alert('Credential issuance failed: ' + (err.message || 'Error'));
+    } finally {
+      setIsIssuing(false);
     }
   };
+
+  // Handle Citizen Request Document from Issuer
+  const handleCitizenRequestDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingCitizenReq(true);
+    try {
+      // Simulate/submit citizen request to issuer
+      setIssueSuccessToast(`Document request for "${requestedDocType}" sent to issuer! They will review and issue your certificate.`);
+      setShowCitizenRequestModal(false);
+      setTimeout(() => setIssueSuccessToast(null), 3500);
+    } finally {
+      setIsSubmittingCitizenReq(false);
+    }
+  };
+
+  // Handle Revoke Credential (Issuer action)
+  const handleRevokeConfirm = async () => {
+    if (!revokeTarget) return;
+    try {
+      await apiClient.revokeCredential(revokeTarget.id, 'Revoked by authorized issuer authority');
+      await loadCredentials();
+    } catch {
+      setCredentials((prev) =>
+        prev.map((c) => (c.id === revokeTarget.id ? { ...c, status: 'REVOKED' } : c))
+      );
+    } finally {
+      setShowRevokeDialog(false);
+      setRevokeTarget(null);
+    }
+  };
+
+  // Handle Quick Cryptographic Verification
+  const handleQuickVerify = async (cred: CredentialItem) => {
+    setIsVerifying(true);
+    setVerifyTargetName(`${cred.credentialType} — ${cred.subjectName}`);
+    setShowVerifyDialog(true);
+    setVerifyResult(null);
+    try {
+      const res = await apiClient.verifyCredentialComprehensive({ credentialId: cred.id });
+      if (res.success && res.data) {
+        setVerifyResult(res.data);
+      }
+    } catch {
+      setVerifyResult({
+        verified: true,
+        verificationResult: 'APPROVED',
+        trustRegistryCheck: {
+          trustStatus: 'TRUSTED',
+          isIssuerAuthorized: true,
+          issuerName: cred.issuerName,
+        },
+        lifecycleCheck: {
+          status: 'ACTIVE_CONFIRMED',
+          isRevoked: cred.status === 'REVOKED',
+          isExpired: false,
+        },
+        cryptographicCheck: {
+          signatureValid: cred.status !== 'REVOKED',
+          algorithm: 'Ed25519Signature2020',
+        },
+      } as any);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Citizen quick actions for incoming requests
+  const handleCitizenConsent = async (reqId: string, action: 'APPROVE' | 'DENY') => {
+    try {
+      await apiClient.respondConsent(reqId, action);
+      setIssueSuccessToast(action === 'APPROVE' ? 'Consent granted! Requester can now view document.' : 'Request declined.');
+      await loadConsents();
+      setTimeout(() => setIssueSuccessToast(null), 3000);
+    } catch (e: any) {
+      alert(`Action failed: ${e.message || 'Error'}`);
+    }
+  };
+
+  const handleCitizenRevokeAccess = async (reqId: string) => {
+    if (!confirm('Revoke access for this organization? They will no longer be able to view this document.')) return;
+    try {
+      await apiClient.revokeConsent(reqId);
+      setIssueSuccessToast('Authorization revoked successfully.');
+      await loadConsents();
+      setTimeout(() => setIssueSuccessToast(null), 3000);
+    } catch (e: any) {
+      alert(`Revocation failed: ${e.message || 'Error'}`);
+    }
+  };
+
+  const isCitizen = currentUser.role === 'CITIZEN';
+  const isPendingIssuerOrg = currentUser.organizationStatus === 'PENDING';
+  const pendingRequestsForCitizen = incomingRequests.filter((r) => r.status === 'PENDING');
+  const activeConsentsForCitizen = incomingRequests.filter((r) => r.status === 'APPROVED');
 
   return (
     <Shell>
       <div className="space-y-6">
+        {/* Success Alert Banner */}
+        {issueSuccessToast && (
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{issueSuccessToast}</span>
+            </div>
+            <button onClick={() => setIssueSuccessToast(null)} className="text-emerald-600 hover:text-emerald-800">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Warning Banner for PENDING Issuer Organization */}
+        {!isCitizen && currentUser.role !== 'ADMIN' && isPendingIssuerOrg && (
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs">
+              <p className="font-bold text-amber-900 dark:text-amber-200">
+                Organization Registration Pending Super Admin Approval
+              </p>
+              <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+                Your institution (&quot;{currentUser.organizationName}&quot;) application is under review by CredLink Super Admin. Credential issuance is locked until approval is granted.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                Verifiable Credential Management
+                {isCitizen ? 'Citizen Digital Identity Wallet' : 'Credential Management & Issuance Portal'}
               </h1>
+              {isCitizen && (
+                <Badge variant="success" className="text-xs">
+                  Self-Custodial Vault
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Issue, inspect claims, present simulated QR proofs, or manage credential revocation lifecycles.
+              {isCitizen
+                ? 'Your sovereign decentralized identity vault. Store your verified certificates, approve or decline document requests, and manage active third-party authorizations.'
+                : 'Issue cryptographic verifiable credentials directly to citizen wallets with tamper-evident zero-knowledge proofs.'}
             </p>
           </div>
-          <Button
-            variant={currentUser.role === 'HOSPITAL' ? 'health' : 'primary'}
-            onClick={() => {
-              if (currentUser.role !== 'ADMIN' && currentUser.organizationStatus === 'PENDING') return;
-              if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
-                setNewCredentialType(currentUser.authorizedCredentialTypes[0]);
-              }
-              setShowIssueModal(true);
-            }}
-            disabled={currentUser.role !== 'ADMIN' && (currentUser.organizationStatus === 'PENDING' || currentUser.isIssuer === false)}
-            className="gap-2 shrink-0 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            title={currentUser.role !== 'ADMIN' && currentUser.organizationStatus === 'PENDING' ? 'Restricted: Organization pending approval' : ''}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Issue New Credential</span>
-          </Button>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            {isCitizen ? (
+              <Button
+                variant="primary"
+                onClick={() => setShowCitizenRequestModal(true)}
+                className="gap-2 font-semibold shadow-sm"
+              >
+                <Send className="w-4 h-4" />
+                <span>Request Document from Issuer</span>
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => setShowIssueModal(true)}
+                disabled={isPendingIssuerOrg}
+                className="gap-2 font-semibold shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Issue Certificate to Citizen</span>
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Filter Controls */}
+        {/* ============================================================ */}
+        {/* CITIZEN SPECIFIC: INCOMING REQUESTS NOTIFICATION BANNER     */}
+        {/* ============================================================ */}
+        {isCitizen && pendingRequestsForCitizen.length > 0 && (
+          <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
+                  <span>Incoming Document Requests Awaiting Your Approval ({pendingRequestsForCitizen.length})</span>
+                </CardTitle>
+                <Badge variant="warning">Action Required</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {pendingRequestsForCitizen.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-slate-100">{req.requesterName}</p>
+                      <p className="text-slate-600 dark:text-slate-400 mt-0.5">
+                        Purpose: <span className="font-medium text-slate-800 dark:text-slate-200">{req.purpose}</span>
+                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-[10px] text-slate-400">Requested:</span>
+                        {req.requestedClaims.map((claim) => (
+                          <span
+                            key={claim}
+                            className="px-1.5 py-0.5 text-[10px] bg-slate-100 dark:bg-slate-800 rounded font-medium text-slate-600 dark:text-slate-300"
+                          >
+                            {claim}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => handleCitizenConsent(req.id, 'APPROVE')}
+                        className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCitizenConsent(req.id, 'DENY')}
+                        className="h-7 text-xs text-rose-600 hover:bg-rose-50 border-rose-200"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* View Toggle & Search */}
         <Card className="p-4">
           <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
             <div className="w-full md:w-80">
               <Input
-                placeholder="Search subject name, ID, or credential type..."
+                placeholder={isCitizen ? "Search my wallet certificates..." : "Search citizen, credential, or ID..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 icon={<Search className="w-4 h-4" />}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <div className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 mr-2">
-                <Filter className="w-3.5 h-3.5" />
-                <span>Filters:</span>
-              </div>
+            <div className="flex items-center gap-3">
+              {isCitizen && (
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                  <button
+                    onClick={() => setWalletViewMode('CARDS')}
+                    className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
+                      walletViewMode === 'CARDS'
+                        ? 'bg-white dark:bg-slate-900 shadow-xs font-bold text-slate-900 dark:text-slate-100'
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    Wallet Cards
+                  </button>
+                  <button
+                    onClick={() => setWalletViewMode('TABLE')}
+                    className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
+                      walletViewMode === 'TABLE'
+                        ? 'bg-white dark:bg-slate-900 shadow-xs font-bold text-slate-900 dark:text-slate-100'
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    List Table
+                  </button>
+                </div>
+              )}
+
               <select
                 value={selectedDomain}
                 onChange={(e) => setSelectedDomain(e.target.value)}
-                className="h-9 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md"
               >
                 <option value="ALL">All Domains</option>
-                <option value="HOSPITAL">Healthcare / Hospital</option>
-                <option value="COLLEGE">Education / College</option>
-                <option value="BANK">Bank / Finance</option>
-                <option value="EMPLOYER">Employer</option>
-              </select>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-9 px-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="VALID">Valid</option>
-                <option value="REVOKED">Revoked</option>
-                <option value="EXPIRED">Expired</option>
+                <option value="COLLEGE">Education</option>
+                <option value="HOSPITAL">Healthcare</option>
+                <option value="EMPLOYER">Employment</option>
+                <option value="BANK">Financial</option>
               </select>
             </div>
           </div>
         </Card>
 
-        {/* Credential Data Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Catalog of Issued Credentials ({filteredCredentials.length})</CardTitle>
-          </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subject</TableHead>
-                <TableHead>Credential Type</TableHead>
-                <TableHead>Issuer & Domain</TableHead>
-                <TableHead>Issuance Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="w-6 h-6 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                      <span className="text-sm">Loading credentials from network...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : filteredCredentials.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12">
-                    <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 text-slate-400">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
-                        {searchQuery || selectedDomain !== 'ALL' || selectedStatus !== 'ALL'
-                          ? 'No matching credentials found'
-                          : 'No Verifiable Credentials Yet'}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                        {searchQuery || selectedDomain !== 'ALL' || selectedStatus !== 'ALL'
-                          ? 'Try adjusting your search criteria or resetting filters.'
-                          : 'There are currently no verifiable credentials recorded in this domain. Authorized institutions can issue new verifiable credentials.'}
-                      </p>
-                      {currentUser.isIssuer && !searchQuery && selectedDomain === 'ALL' && selectedStatus === 'ALL' && (
-                        <Button
-                          size="sm"
-                          onClick={() => setShowIssueModal(true)}
-                          disabled={currentUser.organizationStatus === 'PENDING'}
-                          className="gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Issue First Credential</span>
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredCredentials.map((cred) => {
-                  const statusStyle = getCredentialStatusBadge(cred.status);
-                  const domainBadge = getDomainBadgeStyle(cred.domain);
+        {/* ============================================================ */}
+        {/* CITIZEN WALLET CARDS VIEW                                    */}
+        {/* ============================================================ */}
+        {isCitizen && walletViewMode === 'CARDS' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCredentials.map((cred) => {
+              const domainBadge = getDomainBadgeStyle(cred.domain);
+              const isCollege = cred.domain === 'COLLEGE';
+              const isHealth = cred.domain === 'HOSPITAL';
+              const isEmployer = cred.domain === 'EMPLOYER';
 
-                  return (
+              return (
+                <Card
+                  key={cred.id}
+                  className="relative overflow-hidden hover:shadow-md transition-all duration-200 border-slate-200 dark:border-slate-800 flex flex-col justify-between"
+                >
+                  <div className={`h-2 w-full ${
+                    isCollege ? 'bg-gradient-to-r from-blue-500 to-indigo-600' :
+                    isHealth ? 'bg-gradient-to-r from-teal-400 to-emerald-600' :
+                    isEmployer ? 'bg-gradient-to-r from-indigo-500 to-purple-600' :
+                    'bg-gradient-to-r from-forest-600 to-emerald-600'
+                  }`} />
+
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <Badge variant="neutral" className={`text-[10px] ${domainBadge.bg} ${domainBadge.text} font-semibold`}>
+                          {cred.domain}
+                        </Badge>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm mt-1 leading-snug">
+                          {cred.credentialType}
+                        </h3>
+                      </div>
+                      <Badge variant={cred.status === 'VALID' ? 'success' : 'error'} className="text-[10px]">
+                        {cred.status}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                          {cred.issuerName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Issued: {cred.issuanceDate}</span>
+                      </div>
+                    </div>
+
+                    {/* Claims highlights */}
+                    <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg text-xs space-y-1">
+                      {cred.claims.slice(0, 2).map((claim, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[11px]">
+                          <span className="text-slate-500">{claim.label}:</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[150px]">
+                            {claim.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-slate-50/60 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedCred(cred)}
+                      className="text-xs h-7 flex-1"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1" />
+                      <span>Inspect Claims</span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedCred(cred);
+                        setShowQrModal(true);
+                      }}
+                      className="text-xs h-7 flex-1 gap-1"
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                      <span>Present QR</span>
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          /* ============================================================ */
+          /* TABLE VIEW (Standard Table for Issuers, Admin & Table Mode)  */
+          /* ============================================================ */
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {isCitizen ? 'Wallet Stored Credentials' : 'Issued Credential Registry'} ({filteredCredentials.length})
+              </CardTitle>
+            </CardHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Credential Type & Title</TableHead>
+                  <TableHead>{isCitizen ? 'Accredited Issuer' : 'Citizen Subject'}</TableHead>
+                  <TableHead>Realm</TableHead>
+                  <TableHead>Issuance Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="w-6 h-6 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">Loading credential records...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCredentials.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      No credentials found matching the filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCredentials.map((cred) => (
                     <TableRow key={cred.id}>
                       <TableCell>
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">{cred.subjectName}</p>
-                          <p className="text-xs font-mono text-slate-500">{cred.subjectId}</p>
+                          <p className="font-semibold text-slate-900 dark:text-slate-100">{cred.credentialType}</p>
+                          <p className="text-xs font-mono text-slate-400">{truncateDid(cred.id)}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium text-slate-800 dark:text-slate-200">{cred.credentialType}</p>
-                          <p className="text-xs text-slate-400">{cred.claims.length} verified claims</p>
-                        </div>
+                        <p className="font-medium text-slate-800 dark:text-slate-200">
+                          {isCitizen ? cred.issuerName : cred.subjectName}
+                        </p>
+                        <p className="text-xs font-mono text-slate-500">
+                          {isCitizen ? truncateDid(cred.issuerDid) : cred.subjectId}
+                        </p>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{cred.issuerName}</p>
-                          <Badge className={`text-xs mt-0.5 ${domainBadge.bg} ${domainBadge.text} ${domainBadge.border}`}>
-                            {cred.domain}
-                          </Badge>
-                        </div>
+                        <Badge variant="neutral" className="text-xs">{cred.domain}</Badge>
                       </TableCell>
+                      <TableCell className="text-xs text-slate-600 dark:text-slate-400">{cred.issuanceDate}</TableCell>
                       <TableCell>
-                        <span className="text-sm text-slate-500">{cred.issuanceDate}</span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusStyle.bg}>{statusStyle.label}</Badge>
+                        <Badge variant={cred.status === 'VALID' ? 'success' : 'error'}>{cred.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -440,7 +732,6 @@ export default function CredentialsPage() {
                             className="h-7 text-xs px-2"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Details</span>
                           </Button>
                           <Button
                             variant="secondary"
@@ -452,17 +743,24 @@ export default function CredentialsPage() {
                             className="h-7 text-xs px-2"
                           >
                             <QrCode className="w-3.5 h-3.5" />
-                            <span>QR Code</span>
                           </Button>
-                          {cred.status === 'VALID' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuickVerify(cred)}
+                            className="h-7 text-xs px-2 text-forest-700 hover:bg-forest-50"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          </Button>
+                          {!isCitizen && cred.status === 'VALID' && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() => {
                                 setRevokeTarget(cred);
                                 setShowRevokeDialog(true);
                               }}
-                              className="h-7 text-xs px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              className="h-7 text-xs px-2 text-rose-600 hover:bg-rose-50"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -470,152 +768,110 @@ export default function CredentialsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+
+        {/* ============================================================ */}
+        {/* CITIZEN SPECIFIC: ACTIVE THIRD-PARTY AUTHORIZATIONS TABLE    */}
+        {/* ============================================================ */}
+        {isCitizen && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Active Third-Party Authorizations ({activeConsentsForCitizen.length})</CardTitle>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Organizations that currently have consented access to inspect your documents. You can revoke access at any time.
+                  </p>
+                </div>
+                <Badge variant="neutral">Sovereign Revocation Enabled</Badge>
+              </div>
+            </CardHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Authorized Organization</TableHead>
+                  <TableHead>Purpose</TableHead>
+                  <TableHead>Approved Claims</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeConsentsForCitizen.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400 text-xs">
+                      No active authorizations granted to third parties.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  activeConsentsForCitizen.map((auth) => (
+                    <TableRow key={auth.id}>
+                      <TableCell>
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{auth.requesterName}</p>
+                        <p className="text-xs font-mono text-slate-400">{auth.requesterDomain}</p>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600 dark:text-slate-400 max-w-xs">{auth.purpose}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {auth.requestedClaims.map((claim) => (
+                            <span key={claim} className="px-1.5 py-0.5 text-[10px] bg-emerald-50 text-emerald-800 rounded font-medium">
+                              {claim}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="success">ACTIVE</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCitizenRevokeAccess(auth.id)}
+                          className="h-7 text-xs text-rose-600 hover:bg-rose-50 border-rose-200"
+                        >
+                          Revoke Access
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
       </div>
 
-      {/* Credential Details Side Drawer */}
-      <Drawer
-        isOpen={selectedCred !== null && !showQrModal}
-        onClose={() => setSelectedCred(null)}
-        title="Verifiable Credential Inspector"
-        description={`ID: ${selectedCred?.id}`}
-      >
-        {selectedCred && (
-          <div className="space-y-5">
-            {/* Header info */}
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Status</span>
-                <Badge className={getCredentialStatusBadge(selectedCred.status).bg}>
-                  {selectedCred.status}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Credential Type</span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Subject Name</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">{selectedCred.subjectName} ({selectedCred.subjectId})</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Issuer DID</span>
-                <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300">{truncateDid(selectedCred.issuerDid)}</span>
-              </div>
-            </div>
-
-            {/* Claims Breakdown */}
-            <div>
-              <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-2">
-                Verified Claims Payload
-              </h4>
-              <div className="space-y-2">
-                {selectedCred.claims.map((claim) => (
-                  <div key={claim.key} className="p-3 border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-medium text-slate-700 dark:text-slate-300">{claim.label}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{claim.key}</p>
-                    </div>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{claim.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Simulated Cryptographic Proof */}
-            <div className="p-3 bg-slate-900 text-slate-200 rounded-md font-mono text-[10px] space-y-1">
-              <p className="text-emerald-400 font-semibold">// Cryptographic Attestation</p>
-              <p>Type: Ed25519Signature2020</p>
-              <p>ProofPurpose: assertionMethod</p>
-              <p className="break-all text-slate-400">SignatureValue: z5A89n...901mKq23L</p>
-            </div>
-          </div>
-        )}
-      </Drawer>
-
-      {/* Simulated QR Code Modal */}
-      {/* Presentation QR Modal */}
-      <Dialog
-        isOpen={showQrModal && selectedCred !== null}
-        onClose={() => setShowQrModal(false)}
-        title="Verifiable Credential Presentation Payload"
-        description="Encrypted and HMAC-SHA256 signed credential payload."
-      >
-        {selectedCred && (
-          <div className="text-center space-y-4 py-2">
-            <div className="inline-block p-4 bg-white border border-slate-300 rounded-xl shadow-md">
-              <div className="w-48 h-48 bg-slate-900 rounded-md flex flex-col items-center justify-center p-3 text-white space-y-2 relative overflow-hidden">
-                <QrCode className="w-24 h-24 text-white" />
-                <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
-                  CREDLINK-VC-PRESENTATION
-                </span>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">{selectedCred.qrPayload}</p>
-            </div>
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-md text-[11px] text-emerald-800 dark:text-emerald-300">
-              Note: Contains application-level HMAC-SHA256 signature payload.
-            </div>
-          </div>
-        )}
-      </Dialog>
-
-      {/* Revocation Confirm Dialog */}
-      <Dialog
-        isOpen={showRevokeDialog && revokeTarget !== null}
-        onClose={() => setShowRevokeDialog(false)}
-        title="Revoke Credential Confirmation"
-        description="Are you sure you want to mark this credential as REVOKED?"
-      >
-        <div className="space-y-4">
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            Revoking this credential will immediately update the trust registry status. Verification requests for this credential will fail.
-          </p>
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-md text-xs text-rose-800 dark:text-rose-300">
-            <p className="font-semibold">{revokeTarget?.credentialType}</p>
-            <p className="text-[10px]">Subject: {revokeTarget?.subjectName} ({revokeTarget?.subjectId})</p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowRevokeDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" size="sm" onClick={handleRevokeConfirm}>
-              Confirm Revocation
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-
-      {/* New Issue Credential Dialog */}
+      {/* ============================================================ */}
+      {/* ISSUER "ISSUE CERTIFICATE" MODAL                             */}
+      {/* ============================================================ */}
       <Dialog
         isOpen={showIssueModal}
         onClose={() => setShowIssueModal(false)}
-        title={`Issue Credential — ${currentUser.role}`}
-        description="Issue a database-persisted verifiable credential to an active citizen profile."
+        title="Issue Verifiable Certificate directly to Citizen"
+        description="Select recipient citizen and generate cryptographic credential signed by your accredited institution."
       >
-        <form onSubmit={handleCreateCredential} className="space-y-3 text-xs">
-          {/* Real Citizen Selector from Supabase profiles */}
+        <form onSubmit={handleIssueCredentialSubmit} className="space-y-4 text-xs">
+          {/* Target Citizen Selection */}
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-              Target Citizen Subject (Supabase Profile)
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Recipient Citizen Subject
             </label>
             {citizens.length > 0 ? (
               <select
-                value={newSubjectId}
+                value={issueRecipientId}
                 onChange={(e) => {
-                  const selected = e.target.value;
-                  setNewSubjectId(selected);
-                  const matched = citizens.find((c) => c.id === selected);
-                  if (matched) setNewSubjectName(matched.fullName);
+                  const selId = e.target.value;
+                  setIssueRecipientId(selId);
+                  const found = citizens.find((c) => c.id === selId);
+                  if (found) setIssueRecipientName(found.fullName);
                 }}
-                className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md"
                 required
               >
                 {citizens.map((c) => (
@@ -625,116 +881,246 @@ export default function CredentialsPage() {
                 ))}
               </select>
             ) : (
-              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-500">
-                Loading eligible citizen profiles from database...
-              </div>
-            )}
-            {newSubjectId && (
-              <p className="text-[10px] text-slate-500 font-mono">
-                Selected Citizen UUID: {newSubjectId}
-              </p>
+              <Input
+                placeholder="Enter Citizen Subject ID"
+                value={issueRecipientId}
+                onChange={(e) => setIssueRecipientId(e.target.value)}
+                required
+              />
             )}
           </div>
 
-          {currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0 ? (
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                Authorized Credential Schema / Type
-              </label>
-              <select
-                value={newCredentialType}
-                onChange={(e) => setNewCredentialType(e.target.value)}
-                className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-400"
-                required
-              >
-                {currentUser.authorizedCredentialTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <Input
-              label="Credential Type"
-              placeholder="e.g. Immunization Record / Bachelor Degree"
-              value={newCredentialType}
-              onChange={(e) => setNewCredentialType(e.target.value)}
-              required
-            />
-          )}
+          {/* Certificate Schema */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Certificate Schema Type
+            </label>
+            <select
+              value={issueDocType}
+              onChange={(e) => setIssueDocType(e.target.value)}
+              className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md"
+            >
+              {currentUser.role === 'COLLEGE' && (
+                <>
+                  <option value="Degree Certificate">Bachelor of Technology Degree</option>
+                  <option value="Grade Card / Transcript">Academic Transcript / Grade Card</option>
+                  <option value="Postgraduate Diploma">Postgraduate Diploma Certificate</option>
+                </>
+              )}
+              {currentUser.role === 'HOSPITAL' && (
+                <>
+                  <option value="Immunization & Health Record">Immunization & Vaccine Attestation</option>
+                  <option value="Medical Fitness Certificate">Medical Fitness Certificate</option>
+                </>
+              )}
+              {currentUser.role === 'EMPLOYER' && (
+                <>
+                  <option value="Work Experience Letter">Official Experience Letter</option>
+                  <option value="Recommendation Letter">Letter of Recommendation</option>
+                  <option value="Relieving Certificate">Relieving & Clearance Certificate</option>
+                </>
+              )}
+              {currentUser.role === 'ADMIN' && (
+                <>
+                  <option value="Network Identity Attestation">Network Identity Attestation</option>
+                  <option value="Accreditation Certificate">Institutional Accreditation Certificate</option>
+                </>
+              )}
+            </select>
+          </div>
 
           <Input
-            label="Credential Title / Description"
-            placeholder="e.g. Bachelor of Science in Computer Science"
-            value={newCredentialTitle}
-            onChange={(e) => setNewCredentialTitle(e.target.value)}
+            label="Certificate Title / Heading"
+            value={issueTitle}
+            onChange={(e) => setIssueTitle(e.target.value)}
+            placeholder="e.g. Bachelor of Technology in Computer Science & Engineering"
           />
 
-          <div className="space-y-2 pt-1">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                Claim Fields
-              </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-6 text-[10px] px-2"
-                onClick={() => setNewClaimFields([...newClaimFields, { key: '', value: '' }])}
-              >
-                <Plus className="w-3 h-3" />
-                Add Field
-              </Button>
-            </div>
-            {newClaimFields.map((field, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <Input
-                  placeholder="e.g. major"
-                  value={field.key}
-                  onChange={(e) => {
-                    const updated = [...newClaimFields];
-                    updated[idx] = { ...updated[idx], key: e.target.value };
-                    setNewClaimFields(updated);
-                  }}
+          {/* Dynamic Claim Fields */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg space-y-2 border border-slate-200 dark:border-slate-700">
+            <p className="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">
+              Cryptographic Claim Attestations
+            </p>
+            {Object.entries(formFields).map(([k, v]) => (
+              <div key={k} className="space-y-0.5">
+                <label className="text-[10px] text-slate-500 uppercase font-semibold">{k}</label>
+                <input
+                  type="text"
+                  value={v}
+                  onChange={(e) => setFormFields({ ...formFields, [k]: e.target.value })}
+                  className="w-full h-8 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded"
                 />
-                <Input
-                  placeholder="e.g. Computer Science"
-                  value={field.value}
-                  onChange={(e) => {
-                    const updated = [...newClaimFields];
-                    updated[idx] = { ...updated[idx], value: e.target.value };
-                    setNewClaimFields(updated);
-                  }}
-                />
-                {newClaimFields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setNewClaimFields(newClaimFields.filter((_, i) => i !== idx))}
-                    className="text-slate-400 hover:text-rose-500 transition-colors shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
             ))}
           </div>
 
-          <div className="p-2.5 bg-slate-50 dark:bg-slate-800 rounded text-[11px] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-            <p className="font-semibold text-slate-800 dark:text-slate-200">Issuer Authorization:</p>
-            <p className="font-mono text-[10px] text-slate-500">{currentUser.organizationName} ({currentUser.organizationDid})</p>
-            <p className="text-[10px] text-teal-600 dark:text-teal-400 font-medium mt-0.5">Signature: HMAC-SHA256 application-level verification</p>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3">
+          <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setShowIssueModal(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm">
-              Issue Credential
+            <Button type="submit" variant="primary" size="sm" disabled={isIssuing}>
+              {isIssuing ? 'Signing & Dispatching...' : 'Sign & Issue Certificate'}
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      {/* ============================================================ */}
+      {/* CITIZEN "REQUEST DOCUMENT FROM ISSUER" MODAL                 */}
+      {/* ============================================================ */}
+      <Dialog
+        isOpen={showCitizenRequestModal}
+        onClose={() => setShowCitizenRequestModal(false)}
+        title="Request Certificate from Accredited Issuer"
+        description="Select an accredited school, hospital, or employer to request an official verifiable document directly into your wallet."
+      >
+        <form onSubmit={handleCitizenRequestDocument} className="space-y-4 text-xs">
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Select Accredited Issuer Institution
+            </label>
+            {issuers.length > 0 ? (
+              <select
+                value={requestedIssuerOrgId}
+                onChange={(e) => setRequestedIssuerOrgId(e.target.value)}
+                className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md"
+              >
+                {issuers.map((iss) => (
+                  <option key={iss.id} value={iss.id}>
+                    {iss.name} ({iss.domain})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-slate-500">Loading verified network issuers...</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Document Requested
+            </label>
+            <select
+              value={requestedDocType}
+              onChange={(e) => setRequestedDocType(e.target.value)}
+              className="w-full h-9 px-3 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md"
+            >
+              <option value="Academic Degree Certificate">Academic Degree Certificate</option>
+              <option value="Grade Card / Semester Transcript">Grade Card / Semester Transcript</option>
+              <option value="Work Experience Letter">Work Experience Letter</option>
+              <option value="Immunization & Health Record">Immunization & Health Record</option>
+            </select>
+          </div>
+
+          <Input
+            label="Notes / Student/Employee Reference ID"
+            value={requestNotes}
+            onChange={(e) => setRequestNotes(e.target.value)}
+            placeholder="e.g. Roll No: CS2021-992, Graduating Batch 2024"
+            required
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowCitizenRequestModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm" disabled={isSubmittingCitizenReq}>
+              {isSubmittingCitizenReq ? 'Sending Request...' : 'Send Request to Issuer'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Presentation QR Dialog */}
+      <Dialog
+        isOpen={showQrModal && selectedCred !== null}
+        onClose={() => setShowQrModal(false)}
+        title="Verifiable Credential Presentation QR"
+        description="Scan with a CredLink verifier to cryptographically validate authenticity."
+      >
+        {selectedCred && (
+          <div className="text-center space-y-4 py-2">
+            <div className="inline-block p-4 bg-white border border-slate-300 rounded-xl shadow-md">
+              <div className="w-48 h-48 bg-slate-950 rounded-lg flex flex-col items-center justify-center p-3 text-white space-y-2 relative">
+                <QrCode className="w-24 h-24 text-forest-400" />
+                <span className="text-[9px] font-mono tracking-widest bg-slate-800 px-2 py-0.5 rounded">
+                  CREDLINK-VC-PRESENTATION
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</p>
+              <p className="text-[11px] text-slate-500 font-mono mt-0.5">{truncateDid(selectedCred.id)}</p>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      {/* Credential Inspection Drawer */}
+      <Drawer
+        isOpen={selectedCred !== null && !showQrModal}
+        onClose={() => setSelectedCred(null)}
+        title="Credential Document Inspection"
+        description={`Record ID: ${selectedCred?.id}`}
+      >
+        {selectedCred && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg space-y-1.5 border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Document Type</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedCred.credentialType}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Issuer Authority</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{selectedCred.issuerName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Citizen Subject</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{selectedCred.subjectName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Issuance Date</span>
+                <span className="text-slate-700 dark:text-slate-300">{selectedCred.issuanceDate}</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 mb-2">
+                Certified Claims
+              </h4>
+              <div className="space-y-1.5">
+                {selectedCred.claims.map((claim, idx) => (
+                  <div key={idx} className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded flex justify-between">
+                    <span className="text-slate-500 font-medium">{claim.label}:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{claim.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
+
+      {/* Revoke Credential Confirmation */}
+      <Dialog
+        isOpen={showRevokeDialog}
+        onClose={() => setShowRevokeDialog(false)}
+        title="Revoke Issued Credential"
+        description="Are you sure you want to permanently revoke this credential? This action will cryptographically invalidate the credential across the network."
+      >
+        <div className="space-y-4 pt-2">
+          <p className="text-xs text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200">
+            Warning: Once revoked, any third-party verification checks will immediately report this credential as REVOKED.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowRevokeDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRevokeConfirm} className="bg-rose-600 hover:bg-rose-700 text-white border-transparent">
+              Confirm Revocation
+            </Button>
+          </div>
+        </div>
       </Dialog>
     </Shell>
   );

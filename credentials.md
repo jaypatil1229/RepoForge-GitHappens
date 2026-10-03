@@ -22,81 +22,83 @@
 
 ## User Accounts
 
-### 🔐 Admin — Network Governance
-
+### 👑 Super Admin — Network Governance
 | Field | Value |
 |---|---|
 | **Email** | `admin@credlink.org` |
 | **Password** | `CredLink@2025` |
-| **Full Name** | Network Administrator |
-| **Role** | `ADMIN` |
-| **Organization** | CredLink Network Governance |
-| **Access Level** | Full platform administration, trust registry management, issuer authorization |
+| **Role / Persona** | **Super Admin** |
+| **Capabilities** | Approve/reject issuer organizations, view full platform logs, user directory, request logs, universal issuance/request override |
 
 ---
 
-### 🏥 Healthcare Domain — Doctor
-
-| Field | Value |
-|---|---|
-| **Email** | `doctor@stjude.health` |
-| **Password** | `Health@2025` |
-| **Full Name** | Dr. Priya Sharma |
-| **Role** | `CITIZEN` |
-| **Domain** | Healthcare / Hospital |
-| **Use Case** | Issue & verify immunization records, health insurance eligibility, medical attestations |
-
----
-
-### 🎓 Education Domain — Dean
-
+### 🏫 Issuer 1 — Education Institution (NIT)
 | Field | Value |
 |---|---|
 | **Email** | `dean@nit.edu` |
 | **Password** | `Education@2025` |
 | **Full Name** | Prof. Rajesh Kumar |
-| **Role** | `CITIZEN` |
-| **Domain** | Education / College |
-| **Use Case** | Issue & verify academic transcripts, degree certificates, enrollment records |
+| **Role / Persona** | **Issuer (College / Education)** |
+| **Organization** | National Institute of Technology |
+| **Capabilities** | Issue Grade Cards, Degree Certificates, Transcripts directly to citizens |
 
 ---
 
-### 🏦 Finance Domain — Bank Manager
+### 🏥 Issuer 2 — Healthcare Institution (AIIMS / Hospital)
+| Field | Value |
+|---|---|
+| **Email** | `doctor@stjude.health` |
+| **Password** | `Health@2025` |
+| **Full Name** | Dr. Priya Sharma |
+| **Role / Persona** | **Issuer (Healthcare / Hospital)** |
+| **Organization** | All India Institute of Medical Sciences |
+| **Capabilities** | Issue Immunization Records, Health Attestations directly to citizens |
 
+---
+
+### 🔍 Requester 1 — Scholarship Trust & Finance Verifier
 | Field | Value |
 |---|---|
 | **Email** | `manager@apex.bank` |
 | **Password** | `Finance@2025` |
 | **Full Name** | Anita Desai |
-| **Role** | `CITIZEN` |
-| **Domain** | Banking / Finance |
-| **Use Case** | Issue & verify KYC compliance, income verification, credit standing attestations |
+| **Role / Persona** | **Requester (Trust / Bank Verifier)** |
+| **Organization** | Apex Global Bank / Scholarship Foundation |
+| **Capabilities** | Gmail-style multi-citizen document request composer, status tracker, verified document viewer |
 
 ---
 
-### 💼 Employer Domain — HR Manager
-
+### 🔍 Requester 2 — Enterprise Employer (Background Checks)
 | Field | Value |
 |---|---|
 | **Email** | `hr@globaltech.corp` |
 | **Password** | `Employer@2025` |
 | **Full Name** | Vikram Singh |
-| **Role** | `CITIZEN` |
-| **Domain** | Employment / Enterprise |
-| **Use Case** | Issue & verify employment certificates, role seniority, clearance certificates |
+| **Role / Persona** | **Requester (Employer Background Check)** |
+| **Organization** | TechCorp Solutions |
+| **Capabilities** | Request experience letters, degree verification from multiple citizens at once |
 
 ---
 
-### 👤 Citizen — Individual Identity & Wallet Holder
-
+### 👤 Citizen 1 — Primary Digital Wallet Holder
 | Field | Value |
 |---|---|
 | **Email** | `citizen@credlink.org` |
 | **Password** | `Citizen@2025` |
 | **Full Name** | Aarav Sharma |
-| **Role** | `CITIZEN` |
-| **Domain** | Citizen / Individual Holder |
-| **Use Case** | View personal credentials, manage consent requests, present verifiable QR proofs, verify attestations |
+| **Role / Persona** | **Citizen** |
+| **Capabilities** | Citizen Wallet, presentation QR, receive request notifications, approve/decline, instant access revocation |
+
+---
+
+### 👤 Citizen 2 — Secondary Student Wallet
+| Field | Value |
+|---|---|
+| **Email** | `student@nit.edu` |
+| **Password** | `Citizen@2025` |
+| **Full Name** | Rohan Verma |
+| **Role / Persona** | **Citizen (Student)** |
+| **Capabilities** | Multi-recipient request testing, receive grade cards, grant/decline consent |
 
 ---
 

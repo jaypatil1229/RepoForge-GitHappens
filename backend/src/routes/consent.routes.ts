@@ -7,6 +7,7 @@ const router = Router();
 // Protect all consent endpoints with JWT authentication middleware
 router.use(authenticateUser);
 
+router.post('/batch-request', (req, res, next) => consentController.batchRequest(req, res, next));
 router.post('/request', (req, res, next) => consentController.request(req, res, next));
 router.post('/', (req, res, next) => consentController.grant(req, res, next));
 router.get('/', (req, res, next) => consentController.list(req, res, next));

@@ -18,10 +18,11 @@ interface TopbarProps {
 export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, switchRole, logout, memberships } = useRoleContext();
+  const { currentUser, switchRole, logout, memberships, login } = useRoleContext();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isSwitchingPersona, setIsSwitchingPersona] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const handleSignOut = async () => {
@@ -32,19 +33,30 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
 
   const getPageTitleFull = (path: string) => {
     if (path.startsWith('/dashboard')) return 'Dashboard Overview';
-    if (path.startsWith('/credentials')) return 'Credential Management';
-    if (path.startsWith('/verification')) return 'Verification Center';
-    if (path.startsWith('/organizations')) return 'Issuers';
+    if (path.startsWith('/credentials')) return currentUser?.role === 'CITIZEN' ? 'Citizen Digital Wallet' : 'Credential Management';
+    if (path.startsWith('/verification')) return currentUser?.role === 'CITIZEN' ? 'Incoming Requests & Sovereign Consent' : 'Selective Disclosure Verification Center';
+    if (path.startsWith('/organizations')) return currentUser?.role === 'ADMIN' ? 'Issuers & Network Governance' : 'Verified Issuers';
     if (path.startsWith('/audit')) return 'Audit & Activity Log';
-    return 'Admin Portal';
+    return 'CredLink Network Portal';
   };
 
   const roles: { role: UserRole; label: string; icon: React.ReactNode }[] = [
-    { role: 'HOSPITAL', label: 'Hospital / Healthcare', icon: <HeartPulse className="w-4 h-4 text-teal-600" /> },
-    { role: 'COLLEGE', label: 'College / University', icon: <GraduationCap className="w-4 h-4 text-blue-600" /> },
-    { role: 'BANK', label: 'Bank / Financial Inst.', icon: <Landmark className="w-4 h-4 text-emerald-600" /> },
-    { role: 'EMPLOYER', label: 'Employer / Enterprise', icon: <Briefcase className="w-4 h-4 text-indigo-600" /> },
-    { role: 'ADMIN', label: 'Network Administrator', icon: <Shield className="w-4 h-4 text-slate-600" /> },
+    { role: 'ADMIN', label: 'Super Admin (Network Governance)', icon: <Shield className="w-4 h-4 text-slate-700" /> },
+    { role: 'COLLEGE', label: 'Issuer — College / Education', icon: <GraduationCap className="w-4 h-4 text-blue-600" /> },
+    { role: 'HOSPITAL', label: 'Issuer — Healthcare Provider', icon: <HeartPulse className="w-4 h-4 text-teal-600" /> },
+    { role: 'BANK', label: 'Requester — Bank / Scholarship Trust', icon: <Landmark className="w-4 h-4 text-emerald-600" /> },
+    { role: 'EMPLOYER', label: 'Requester — Employer / Enterprise', icon: <Briefcase className="w-4 h-4 text-indigo-600" /> },
+    { role: 'CITIZEN', label: 'Citizen — Digital Wallet Holder', icon: <User className="w-4 h-4 text-emerald-700" /> },
+  ];
+
+  const DEMO_TEST_PERSONAS = [
+    { email: 'admin@credlink.org', password: 'CredLink@2025', name: 'Super Admin', role: 'ADMIN', org: 'Network Governance', badge: 'Super Admin' },
+    { email: 'dean@nit.edu', password: 'Education@2025', name: 'Dean (NIT)', role: 'COLLEGE', org: 'National Institute of Tech', badge: 'Issuer' },
+    { email: 'doctor@stjude.health', password: 'Health@2025', name: 'Dr. Priya (AIIMS)', role: 'HOSPITAL', org: 'AIIMS Healthcare', badge: 'Issuer' },
+    { email: 'manager@apex.bank', password: 'Finance@2025', name: 'Vikram (Apex Trust)', role: 'BANK', org: 'Apex Global Bank', badge: 'Requester' },
+    { email: 'hr@globaltech.corp', password: 'Employer@2025', name: 'Sneha (TechCorp)', role: 'EMPLOYER', org: 'TechCorp Solutions', badge: 'Requester' },
+    { email: 'citizen@credlink.org', password: 'Citizen@2025', name: 'Aarav Sharma', role: 'CITIZEN', org: 'Citizen Wallet', badge: 'Citizen' },
+    { email: 'student@nit.edu', password: 'Citizen@2025', name: 'Rohan Verma', role: 'CITIZEN', org: 'Citizen Wallet', badge: 'Citizen' },
   ];
 
   const userRole = currentUser?.role || 'CITIZEN';
@@ -116,28 +128,78 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
             {availableRoles.length > 1 && <ChevronDown className="w-3 h-3 text-slate-400" />}
           </button>
 
-          {showRoleMenu && availableRoles.length > 0 && (
+          {showRoleMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowRoleMenu(false)} />
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-1.5 z-50 animate-fade-in">
-                <div className="px-3 py-1.5 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
-                  Authorized Domains
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl py-2 z-50 animate-fade-in max-h-[85vh] overflow-y-auto">
+                <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
+                  Switch Active Persona (Demo Testing)
                 </div>
-                {availableRoles.map((r) => (
-                  <button
-                    key={r.role}
-                    onClick={() => {
-                      switchRole(r.role);
-                      setShowRoleMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left active:bg-slate-100 dark:active:bg-slate-800 ${
-                      userRole === r.role ? 'font-semibold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    {r.icon}
-                    <span>{r.label}</span>
-                  </button>
-                ))}
+                <div className="py-1">
+                  {DEMO_TEST_PERSONAS.map((p) => {
+                    const isCurrent = currentUser?.email === p.email;
+                    return (
+                      <button
+                        key={p.email}
+                        disabled={isSwitchingPersona}
+                        onClick={async () => {
+                          setIsSwitchingPersona(true);
+                          try {
+                            const ok = await login({ email: p.email, password: p.password });
+                            if (ok) {
+                              setShowRoleMenu(false);
+                              router.refresh();
+                            }
+                          } finally {
+                            setIsSwitchingPersona(false);
+                          }
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors ${
+                          isCurrent
+                            ? 'bg-slate-100 dark:bg-slate-800 font-semibold text-slate-900 dark:text-slate-100'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="font-semibold truncate">{p.name}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{p.email}</p>
+                        </div>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                          p.role === 'ADMIN' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300' :
+                          p.role === 'COLLEGE' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
+                          p.role === 'HOSPITAL' ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300' :
+                          p.role === 'BANK' || p.role === 'EMPLOYER' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300' :
+                          'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        }`}>
+                          {p.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {availableRoles.length > 1 && (
+                  <>
+                    <div className="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800">
+                      Organization Context
+                    </div>
+                    {availableRoles.map((r) => (
+                      <button
+                        key={r.role}
+                        onClick={() => {
+                          switchRole(r.role);
+                          setShowRoleMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left active:bg-slate-100 dark:active:bg-slate-800 ${
+                          userRole === r.role ? 'font-semibold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {r.icon}
+                        <span>{r.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             </>
           )}

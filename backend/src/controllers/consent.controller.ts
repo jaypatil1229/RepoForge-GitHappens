@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { consentService } from '../services/consent.service';
 import {
+  batchRequestConsentSchema,
   requestConsentSchema,
   grantConsentSchema,
   respondConsentSchema,
@@ -11,6 +12,36 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { ApiResponse } from '../types';
 
 export class ConsentController {
+  /**
+   * POST /api/consents/batch-request
+   * Organization member dispatches document verification requests to multiple citizens via email list.
+   */
+  async batchRequest(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication context missing',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const validatedInput = batchRequestConsentSchema.parse(req.body);
+      const result = await consentService.batchRequestConsent(req.user, validatedInput);
+
+      const response: ApiResponse = {
+        success: true,
+        message: `Successfully processed consent requests for ${result.totalRequested} recipient(s)`,
+        data: result,
+        timestamp: new Date().toISOString(),
+      };
+
+      res.status(201).json(response);
+    } catch (err) {
+      next(err);
+    }
+  }
   /**
    * POST /api/consents/request
    * Organization member requests consent from citizen.
