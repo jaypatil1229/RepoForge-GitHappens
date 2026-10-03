@@ -34,8 +34,7 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
     if (path.startsWith('/dashboard')) return 'Dashboard Overview';
     if (path.startsWith('/credentials')) return 'Credential Management';
     if (path.startsWith('/verification')) return 'Verification Center';
-    if (path.startsWith('/trust-registry')) return 'Trust Registry';
-    if (path.startsWith('/organizations')) return 'Issuer Directory';
+    if (path.startsWith('/organizations')) return 'Issuers';
     if (path.startsWith('/audit')) return 'Audit & Activity Log';
     return 'Admin Portal';
   };
