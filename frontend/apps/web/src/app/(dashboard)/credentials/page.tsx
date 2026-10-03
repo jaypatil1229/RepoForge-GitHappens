@@ -21,7 +21,6 @@ import {
   Clock,
   Sparkles,
   ShieldCheck,
-  Shield,
   Send,
   AlertTriangle,
   Award,
@@ -51,7 +50,7 @@ import {
 import { MOCK_CREDENTIALS, MOCK_VERIFICATION_REQUESTS } from '../../../lib/mockData';
 
 export default function CredentialsPage() {
-  const { currentUser, login } = useRoleContext();
+  const { currentUser } = useRoleContext();
   if (!currentUser) return null;
 
   const [credentials, setCredentials] = useState<CredentialItem[]>([]);
@@ -62,8 +61,6 @@ export default function CredentialsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [roleCategoryTab, setRoleCategoryTab] = useState<'ALL' | 'ADMIN' | 'ISSUER' | 'REQUESTER' | 'CITIZEN'>('ALL');
-  const [isSwitchingPersona, setIsSwitchingPersona] = useState(false);
   const [walletViewMode, setWalletViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
 
   // Selected credential for details drawer & QR presentation modal
@@ -268,18 +265,7 @@ export default function CredentialsPage() {
     const matchesDomain = selectedDomain === 'ALL' || item.domain === selectedDomain;
     const matchesStatus = selectedStatus === 'ALL' || item.status === selectedStatus;
 
-    let matchesRoleCategory = true;
-    if (roleCategoryTab === 'ADMIN') {
-      matchesRoleCategory = item.domain === 'ADMIN';
-    } else if (roleCategoryTab === 'ISSUER') {
-      matchesRoleCategory = item.domain === 'COLLEGE' || item.domain === 'HOSPITAL' || item.domain === 'EMPLOYER';
-    } else if (roleCategoryTab === 'REQUESTER') {
-      matchesRoleCategory = item.domain === 'BANK' || item.domain === 'EMPLOYER';
-    } else if (roleCategoryTab === 'CITIZEN') {
-      matchesRoleCategory = item.domain === 'COLLEGE' || item.domain === 'HOSPITAL' || item.domain === 'EMPLOYER' || item.domain === 'BANK';
-    }
-
-    return matchesSearch && matchesDomain && matchesStatus && matchesRoleCategory;
+    return matchesSearch && matchesDomain && matchesStatus;
   });
 
   // Handle Issuer Issue Credential
@@ -559,255 +545,7 @@ export default function CredentialsPage() {
           </Card>
         )}
 
-        {/* ============================================================ */}
-        {/* 4-USER ROLE CREDENTIAL CATEGORIZATION & TEST ASSISTANT       */}
-        {/* ============================================================ */}
-        <Card className="border-forest-700/30 dark:border-forest-500/30 overflow-hidden shadow-xs">
-          <div className="p-4 bg-gradient-to-r from-slate-900 via-forest-950 to-slate-900 text-white">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-forest-300">
-                  Credential Classification
-                </span>
-                <h2 className="text-base font-bold text-white mt-0.5">
-                  Categorized by User Role & Purpose
-                </h2>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Select a role category below to test credentials matching each persona&apos;s specific workflow.
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 bg-slate-800/80 p-1 rounded-lg border border-slate-700 self-start sm:self-auto text-xs">
-                <span className="text-[11px] text-slate-400 px-2 font-medium">Active:</span>
-                <Badge variant="neutral" className="bg-forest-800 text-forest-100 border-none font-bold text-[11px]">
-                  {currentUser.role}
-                </Badge>
-              </div>
-            </div>
 
-            {/* Category Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 mt-4 pt-3 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setRoleCategoryTab('ALL')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all ${
-                  roleCategoryTab === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-md font-bold'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-slate-300'
-                }`}
-              >
-                <p className="truncate">All Credentials</p>
-                <span className="text-[10px] opacity-70 font-mono">({credentials.length} total)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRoleCategoryTab('ADMIN')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all ${
-                  roleCategoryTab === 'ADMIN'
-                    ? 'bg-purple-600 text-white shadow-md font-bold'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-purple-300'
-                }`}
-              >
-                <div className="flex items-center gap-1 truncate">
-                  <Shield className="w-3 h-3 shrink-0" />
-                  <span className="truncate">1. Super Admin</span>
-                </div>
-                <span className="text-[10px] opacity-80 font-mono">Root & Policies</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRoleCategoryTab('ISSUER')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all ${
-                  roleCategoryTab === 'ISSUER'
-                    ? 'bg-blue-600 text-white shadow-md font-bold'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-blue-300'
-                }`}
-              >
-                <div className="flex items-center gap-1 truncate">
-                  <GraduationCap className="w-3 h-3 shrink-0" />
-                  <span className="truncate">2. Issuer Issued</span>
-                </div>
-                <span className="text-[10px] opacity-80 font-mono">Degrees, Grades, Vax</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRoleCategoryTab('REQUESTER')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all ${
-                  roleCategoryTab === 'REQUESTER'
-                    ? 'bg-indigo-600 text-white shadow-md font-bold'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-indigo-300'
-                }`}
-              >
-                <div className="flex items-center gap-1 truncate">
-                  <Landmark className="w-3 h-3 shrink-0" />
-                  <span className="truncate">3. Requester</span>
-                </div>
-                <span className="text-[10px] opacity-80 font-mono">Verified Claims</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRoleCategoryTab('CITIZEN')}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold text-left transition-all ${
-                  roleCategoryTab === 'CITIZEN'
-                    ? 'bg-emerald-600 text-white shadow-md font-bold'
-                    : 'bg-slate-800/60 hover:bg-slate-800 text-emerald-300'
-                }`}
-              >
-                <div className="flex items-center gap-1 truncate">
-                  <User className="w-3 h-3 shrink-0" />
-                  <span className="truncate">4. Citizen Wallet</span>
-                </div>
-                <span className="text-[10px] opacity-80 font-mono">Personal Vault</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Role Detail & Quick Test Helper Card */}
-          {roleCategoryTab !== 'ALL' && (
-            <div className="p-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-xs">
-              {roleCategoryTab === 'ADMIN' && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
-                      <Shield className="w-4 h-4 text-purple-600" />
-                      Role 1: Super Admin — Network Governance Authority
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Credentials: <strong>Root Authority Attestation</strong>, <strong>Issuer Accreditation</strong>, <strong>Trust Registry Policies</strong>. Super Admin can approve/reject issuers, inspect full logs, and issue network-level trust attestations.
-                    </p>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      Test Login: <strong>admin@credlink.org</strong> | Password: <strong>CredLink@2025</strong>
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isSwitchingPersona || currentUser.email === 'admin@credlink.org'}
-                    onClick={async () => {
-                      setIsSwitchingPersona(true);
-                      try {
-                        const ok = await login({ email: 'admin@credlink.org', password: 'CredLink@2025' });
-                        if (ok) window.location.reload();
-                      } finally {
-                        setIsSwitchingPersona(false);
-                      }
-                    }}
-                    className="shrink-0 text-xs font-semibold bg-purple-50 text-purple-900 border-purple-300 hover:bg-purple-100 dark:bg-purple-950 dark:text-purple-200"
-                  >
-                    {currentUser.email === 'admin@credlink.org' ? '✓ Currently Logged In' : 'Test as Super Admin'}
-                  </Button>
-                </div>
-              )}
-
-              {roleCategoryTab === 'ISSUER' && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                      <GraduationCap className="w-4 h-4 text-blue-600" />
-                      Role 2: Issuer — Accredited Schools, Hospitals & Employers
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Credentials: <strong>Academic Degrees</strong>, <strong>Grade Cards / Semester Transcripts</strong> (NIT), <strong>Immunization Records</strong> (AIIMS), <strong>Experience Letters</strong> (TechCorp).
-                    </p>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      Test Logins: <strong>dean@nit.edu</strong> (College) | <strong>doctor@stjude.health</strong> (Hospital) | Password: <strong>Education@2025</strong> / <strong>Health@2025</strong>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isSwitchingPersona || currentUser.email === 'dean@nit.edu'}
-                      onClick={async () => {
-                        setIsSwitchingPersona(true);
-                        try {
-                          const ok = await login({ email: 'dean@nit.edu', password: 'Education@2025' });
-                          if (ok) window.location.reload();
-                        } finally {
-                          setIsSwitchingPersona(false);
-                        }
-                      }}
-                      className="text-xs font-semibold bg-blue-50 text-blue-900 border-blue-300 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-200"
-                    >
-                      {currentUser.email === 'dean@nit.edu' ? '✓ Logged In as NIT' : 'Test as College Issuer'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {roleCategoryTab === 'REQUESTER' && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                      <Landmark className="w-4 h-4 text-indigo-600" />
-                      Role 3: Requester — Scholarship Trusts, Banks & Enterprise HR
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Credentials: <strong>Financial Eligibility Attestations</strong>, <strong>Employment Background Checks</strong>, <strong>Verified KYC Claims</strong>. Requesters dispatch multi-recipient document requests via email and inspect verified claims once consented.
-                    </p>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      Test Logins: <strong>manager@apex.bank</strong> (Scholarship Trust) | <strong>hr@globaltech.corp</strong> (TechCorp HR)
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isSwitchingPersona || currentUser.email === 'manager@apex.bank'}
-                    onClick={async () => {
-                      setIsSwitchingPersona(true);
-                      try {
-                        const ok = await login({ email: 'manager@apex.bank', password: 'Finance@2025' });
-                        if (ok) window.location.reload();
-                      } finally {
-                        setIsSwitchingPersona(false);
-                      }
-                    }}
-                    className="shrink-0 text-xs font-semibold bg-indigo-50 text-indigo-900 border-indigo-300 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-200"
-                  >
-                    {currentUser.email === 'manager@apex.bank' ? '✓ Logged In as Bank' : 'Test as Requester (Bank)'}
-                  </Button>
-                </div>
-              )}
-
-              {roleCategoryTab === 'CITIZEN' && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-emerald-600" />
-                      Role 4: Citizen — Sovereign Digital Wallet Holder
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-400">
-                      Credentials: <strong>All Personal Credentials</strong> (Degrees, Grade Cards, Work Experience, Health). Citizens hold credentials in their vault, present QR codes, receive incoming request notifications, approve/decline disclosure, and revoke access on demand.
-                    </p>
-                    <p className="text-[11px] text-slate-500 font-mono">
-                      Test Logins: <strong>citizen@credlink.org</strong> (Aarav Sharma) | <strong>student@nit.edu</strong> (Rohan Verma) | Password: <strong>Citizen@2025</strong>
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isSwitchingPersona || currentUser.email === 'citizen@credlink.org'}
-                    onClick={async () => {
-                      setIsSwitchingPersona(true);
-                      try {
-                        const ok = await login({ email: 'citizen@credlink.org', password: 'Citizen@2025' });
-                        if (ok) window.location.reload();
-                      } finally {
-                        setIsSwitchingPersona(false);
-                      }
-                    }}
-                    className="shrink-0 text-xs font-semibold bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-200"
-                  >
-                    {currentUser.email === 'citizen@credlink.org' ? '✓ Logged In as Citizen' : 'Test as Citizen (Aarav)'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </Card>
 
         {/* View Toggle & Search */}
         <Card className="p-4">
