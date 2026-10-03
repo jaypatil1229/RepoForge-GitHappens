@@ -27,7 +27,7 @@ export function Topbar({ onToggleMobileSidebar }: TopbarProps) {
   const handleSignOut = async () => {
     setShowProfileMenu(false);
     await logout();
-    router.push('/');
+    router.push('/login');
   };
 
   const getPageTitleFull = (path: string) => {

@@ -173,7 +173,17 @@ export class CredLinkApiClient {
   private authToken: string | null = null;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const envUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
+      const isLocalUrl = !envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1');
+      this.baseUrl = isLocalUrl
+        ? (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL) || 'https://credlink-20-production.up.railway.app'
+        : envUrl;
+    } else {
+      this.baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
+    }
     // Remove trailing slash if present
     if (this.baseUrl.endsWith('/')) {
       this.baseUrl = this.baseUrl.slice(0, -1);

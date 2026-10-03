@@ -46,7 +46,7 @@ export default function DashboardPage() {
   const [subjectId, setSubjectId] = useState('');
   const [credentialTitle, setCredentialTitle] = useState('');
   const [credentialType, setCredentialType] = useState(
-    currentUser.role === 'HOSPITAL' ? 'Immunization Record Certificate' : 'Bachelor of Science'
+    currentUser?.role === 'HOSPITAL' ? 'Immunization Record Certificate' : 'Bachelor of Science'
   );
 
   const loadDashboardData = React.useCallback(async () => {
@@ -68,8 +68,8 @@ export default function DashboardPage() {
                 domain: (c.domain?.toUpperCase() as any) || 'CITIZEN',
                 subjectId: c.subjectId,
                 subjectName: c.subjectName || `Citizen ${(c.subjectId || '').substring(0, 6)}`,
-                issuerName: c.issuer?.name || currentUser.organizationName,
-                issuerDid: c.issuer?.did || currentUser.organizationDid,
+                issuerName: c.issuer?.name || currentUser?.organizationName || 'CredLink Network',
+                issuerDid: c.issuer?.did || currentUser?.organizationDid || '',
                 issuanceDate: c.issuanceDate ? c.issuanceDate.split('T')[0] : new Date().toISOString().split('T')[0],
                 status: (c.status as CredentialStatus) || 'VALID',
                 claims: Array.isArray(c.claims)
@@ -87,8 +87,8 @@ export default function DashboardPage() {
             if (d.consents && d.consents.length > 0) {
               const mappedConsents: VerificationRequest[] = d.consents.map((con: any) => ({
                 id: con.id,
-                requesterName: con.requestingOrgId || currentUser.organizationName,
-                requesterDomain: (con.domain?.toUpperCase() as any) || currentUser.role,
+                requesterName: con.requestingOrgId || currentUser?.organizationName || 'CredLink Verifier',
+                requesterDomain: (con.domain?.toUpperCase() as any) || currentUser?.role || 'CITIZEN',
                 targetSubjectName: con.citizenId ? `Citizen ${con.citizenId.substring(0, 6)}` : 'Citizen Subject',
                 targetSubjectId: con.citizenId || 'N/A',
                 purpose: con.purpose,
