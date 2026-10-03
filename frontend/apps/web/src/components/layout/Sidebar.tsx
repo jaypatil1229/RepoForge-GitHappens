@@ -53,8 +53,7 @@ export function Sidebar({ isOpen, onCloseMobile }: SidebarProps) {
     { href: '/dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { href: '/credentials', label: 'Credential Management', icon: FileCheck2 },
     { href: '/verification', label: 'Verification Center', icon: ShieldCheck },
-    { href: '/trust-registry', label: 'Trust Registry', icon: Lock },
-    { href: '/organizations', label: 'Issuer Directory', icon: Building2 },
+    { href: '/organizations', label: 'Issuers', icon: Building2 },
     { href: '/audit', label: 'Audit Trail', icon: History }
   ];
 

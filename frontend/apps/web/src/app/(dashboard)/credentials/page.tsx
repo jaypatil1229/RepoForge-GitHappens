@@ -285,15 +285,15 @@ export default function CredentialsPage() {
           <Button
             variant={currentUser.role === 'HOSPITAL' ? 'health' : 'primary'}
             onClick={() => {
-              if (currentUser.organizationStatus === 'PENDING') return;
+              if (currentUser.role !== 'ADMIN' && currentUser.organizationStatus === 'PENDING') return;
               if (currentUser.authorizedCredentialTypes && currentUser.authorizedCredentialTypes.length > 0) {
                 setNewCredentialType(currentUser.authorizedCredentialTypes[0]);
               }
               setShowIssueModal(true);
             }}
-            disabled={currentUser.organizationStatus === 'PENDING' || (currentUser.role !== 'ADMIN' && currentUser.isIssuer === false)}
+            disabled={currentUser.role !== 'ADMIN' && (currentUser.organizationStatus === 'PENDING' || currentUser.isIssuer === false)}
             className="gap-2 shrink-0 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            title={currentUser.organizationStatus === 'PENDING' ? 'Restricted: Organization pending approval' : ''}
+            title={currentUser.role !== 'ADMIN' && currentUser.organizationStatus === 'PENDING' ? 'Restricted: Organization pending approval' : ''}
           >
             <Plus className="w-4 h-4" />
             <span>Issue New Credential</span>

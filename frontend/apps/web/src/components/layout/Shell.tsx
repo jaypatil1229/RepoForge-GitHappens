@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Building2,
   History,
-  Lock,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -26,7 +25,6 @@ const mobileNavItems = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { href: '/credentials', label: 'Creds', icon: FileCheck2 },
   { href: '/verification', label: 'Verify', icon: ShieldCheck },
-  { href: '/trust-registry', label: 'Trust', icon: Lock },
   { href: '/organizations', label: 'Issuers', icon: Building2 },
   { href: '/audit', label: 'Audit', icon: History },
 ];
