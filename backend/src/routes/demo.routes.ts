@@ -32,7 +32,7 @@ router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction
         .order('created_at', { ascending: false })
         .limit(100),
       supabaseAdmin
-        .from('consent_requests')
+        .from('consents')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50),

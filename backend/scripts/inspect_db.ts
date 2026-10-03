@@ -1,11 +1,29 @@
-import { supabaseAdmin } from '../src/config/supabase';
+import { supabaseAdmin } from '../src/config/supabase.js';
 
-async function run() {
-  const { data: profiles, error: pErr } = await supabaseAdmin.from('profiles').select('id, email, full_name, role');
-  console.log('PROFILES:', JSON.stringify(profiles, null, 2));
-  const { data: members, error: mErr } = await supabaseAdmin.from('organization_members').select('*');
-  console.log('MEMBERS:', JSON.stringify(members, null, 2));
-  process.exit(0);
+async function main() {
+  const { data: creds } = await supabaseAdmin
+    .from('credentials')
+    .select('id, title, credential_type, subject_id, issuer_org_id, status, claims');
+  console.log('=== CREDENTIALS in DB (' + (creds?.length || 0) + '):');
+  for (const c of creds || []) {
+    console.log(`- [${c.status}] ${c.id}: "${c.title}" (${c.credential_type}) subject=${c.subject_id} issuer_org=${c.issuer_org_id}`);
+  }
+
+  const { data: consents } = await supabaseAdmin
+    .from('consents')
+    .select('id, citizen_id, requesting_org_id, credential_id, status, purpose, approved_claims, requested_claims, created_at, granted_at')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  console.log('=== LATEST 10 CONSENTS:');
+  for (const cs of consents || []) {
+    console.log(`- [${cs.status}] consent=${cs.id} citizen=${cs.citizen_id} org=${cs.requesting_org_id} cred=${cs.credential_id} purpose="${cs.purpose}"`);
+  }
+
+  const { data: profiles } = await supabaseAdmin.from('profiles').select('id, email, full_name, role');
+  console.log('=== PROFILES:');
+  for (const p of profiles || []) {
+    console.log(`- [${p.role}] ${p.id}: ${p.email} (${p.full_name})`);
+  }
 }
 
-run();
+main().catch(console.error);

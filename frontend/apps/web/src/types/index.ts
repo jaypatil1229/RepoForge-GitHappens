@@ -46,15 +46,19 @@ export interface VerificationRequest {
   requesterDomain: UserRole;
   targetSubjectName: string;
   targetSubjectId: string;
+  citizenId?: string;
   purpose: string;
   requestedClaims: string[];
   approvedClaims: string[];
   status: VerificationStatus;
   createdAt: string;
   expiresAt: string;
+  grantedAt?: string;
   credentialId?: string;
   credentialTitle?: string;
   credentialStatus?: string;
+  credentialClaims?: Array<{ key: string; label: string; value: string }>;
+  credentialDomain?: string;
   verificationResult?: {
     verified: boolean;
     timestamp: string;
