@@ -30,7 +30,16 @@ export class ConsentService {
         : null,
       credentialId: consent.credential_id || null,
       credential: credObj
-        ? { id: credObj.id, title: credObj.title, credentialType: credObj.credential_type, status: credObj.status }
+        ? {
+            id: credObj.id,
+            title: credObj.title,
+            credentialType: credObj.credential_type,
+            status: credObj.status,
+            claims: credObj.claims,
+            domain: credObj.domain,
+            issuanceDate: credObj.issuance_date,
+            issuerSignature: credObj.issuer_signature,
+          }
         : null,
       domain: consent.domain,
       purpose: consent.purpose,
@@ -247,7 +256,7 @@ export class ConsentService {
         status: 'PENDING',
         expires_at: expiresAt || null,
       })
-      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status)')
+      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status, claims, domain, issuance_date, issuer_signature, qr_payload)')
       .single();
 
     if (insertError || !newConsent) {
@@ -390,7 +399,7 @@ export class ConsentService {
         expires_at: input.expiresAt || consent.expires_at,
       })
       .eq('id', consentId)
-      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status)')
+      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status, claims, domain, issuance_date, issuer_signature, qr_payload)')
       .single();
 
     if (updateError || !updatedConsent) {
@@ -496,7 +505,7 @@ export class ConsentService {
 
     let queryBuilder = supabaseAdmin
       .from('consents')
-      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status)', { count: 'exact' });
+      .select('*, requesting_org:organizations(id, name, code), citizen:profiles(id, full_name, email), credential:credentials(id, title, credential_type, status, claims, domain, issuance_date, issuer_signature, qr_payload)', { count: 'exact' });
 
     // Authorization scoping
     if (actor.role !== 'ADMIN') {
@@ -696,3 +705,4 @@ export class ConsentService {
 }
 
 export const consentService = new ConsentService();
+

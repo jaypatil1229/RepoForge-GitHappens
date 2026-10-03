@@ -27,14 +27,14 @@ export function CredLinkLogo({
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       <div
-        className={`${dim.box} relative shrink-0 rounded-lg overflow-hidden border border-slate-700/60 shadow-xs bg-[#090D16] transition-transform duration-200 hover:scale-105`}
+        className={`${dim.box} relative shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 shadow-xs bg-white dark:bg-[#090D16] p-0.5 transition-transform duration-200 hover:scale-105 flex items-center justify-center`}
       >
         <Image
-          src="/logo.png"
-          alt="CredLink Verified Chain Logo"
+          src="/credlnkwhitebg.png"
+          alt="CredLink"
           width={dim.img}
           height={dim.img}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           priority
         />
       </div>
@@ -44,7 +44,7 @@ export function CredLinkLogo({
           <span
             className={`${dim.title} font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center leading-none`}
           >
-            Cred<span className="text-teal-500 dark:text-teal-400">Link</span>
+            Cred<span className="text-teal-600 dark:text-teal-400">Link</span>
           </span>
           <span className={`${dim.sub} text-slate-500 dark:text-slate-400 mt-1 font-medium`}>
             {subtitle}

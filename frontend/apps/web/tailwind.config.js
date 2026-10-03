@@ -10,12 +10,38 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        ink: {
+          950: 'var(--ink-950)',
+          800: 'var(--ink-800)',
+          600: 'var(--ink-600)',
+          500: 'var(--ink-500)',
+          400: 'var(--ink-400)',
+        },
+        paper: {
+          0: 'var(--paper-0)',
+          50: 'var(--paper-50)',
+          100: 'var(--paper-100)',
+          200: 'var(--paper-200)',
+        },
+        line: {
+          200: 'var(--line-200)',
+          300: 'var(--line-300)',
+        },
         forest: {
-          50: '#F0F5F2',
-          100: '#E6EFE8',
+          950: 'var(--forest-950, #0b2019)',
+          900: 'var(--forest-900, #102d24)',
+          800: 'var(--forest-800, #163d30)',
+          700: 'var(--forest-700, #21543f)',
+          600: 'var(--forest-600, #2d6a4f)',
           500: '#8FB39C',
-          800: '#2F4A3A',
-          900: '#1A2B22',
+          300: 'var(--forest-300, #8fb79f)',
+          100: 'var(--forest-100, #e4eee6)',
+          50: 'var(--forest-50, #f1f6f1)',
+        },
+        celadon: {
+          100: 'var(--celadon-100)',
+          200: 'var(--celadon-200)',
+          300: 'var(--celadon-300)',
         },
         sage: {
           50: '#F4F7F5',
@@ -30,21 +56,65 @@ module.exports = {
           500: '#14B8A6',
           600: '#0D9488',
           700: '#0F766E',
-        }
+        },
+        success: { 700: 'var(--success-700)', 100: 'var(--success-100)', 50: 'var(--success-50)' },
+        warning: { 700: 'var(--warning-700)', 100: 'var(--warning-100)', 50: 'var(--warning-50)' },
+        danger: { 700: 'var(--danger-700)', 100: 'var(--danger-100)', 50: 'var(--danger-50)' },
+        info: { 700: 'var(--info-700)', 100: 'var(--info-100)', 50: 'var(--info-50)' },
       },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['var(--font-sans)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['var(--font-display)', 'Onest', 'sans-serif'],
+        serif: ['var(--font-serif)', 'Newsreader', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'IBM Plex Mono', 'monospace'],
       },
-      boxShadow: {
-        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-        'soft': '0 2px 10px -2px rgba(0, 0, 0, 0.04)',
+      fontSize: {
+        micro: ['var(--fs-micro, 0.75rem)', { lineHeight: '1.4', letterSpacing: '0.01em' }],
+        ui: ['var(--fs-ui, 0.875rem)', { lineHeight: '1.45' }],
+        body: ['var(--fs-body, 0.9375rem)', { lineHeight: '1.6' }],
+        'body-lg': ['var(--fs-body-lg, 1.125rem)', { lineHeight: '1.55' }],
+        h4: ['var(--fs-h4, 1.125rem)', { lineHeight: '1.3' }],
+        h3: ['var(--fs-h3, 1.375rem)', { lineHeight: '1.18' }],
+        h2: ['var(--fs-h2, 2rem)', { lineHeight: '1.08', letterSpacing: '-0.028em' }],
+        h1: ['var(--fs-h1, 2.75rem)', { lineHeight: '1.04', letterSpacing: '-0.034em' }],
+        'display-l': ['var(--fs-display-l, 3.5rem)', { lineHeight: '1.02', letterSpacing: '-0.04em' }],
+        'display-xl': ['var(--fs-display-xl, 4.5rem)', { lineHeight: '0.98', letterSpacing: '-0.045em' }],
       },
       borderRadius: {
-        'md': '0.375rem',
-        'lg': '0.5rem',
-        'xl': '0.75rem',
-      }
+        md: '0.375rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        control: '8px',
+        panel: '12px',
+        surface: '16px',
+        stage: '20px',
+        editorial: '28px',
+      },
+      boxShadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        soft: '0 2px 10px -2px rgba(0, 0, 0, 0.04)',
+        hairline: '0 1px 0 0 var(--line-200)',
+        raised: '0 1px 2px rgba(16,45,36,0.05), 0 10px 26px -16px rgba(16,45,36,0.28)',
+        artifact: '0 2px 4px rgba(16,45,36,0.05), 0 28px 60px -30px rgba(16,45,36,0.45)',
+        overlay: '0 28px 72px -28px rgba(16,45,36,0.40), 0 2px 8px rgba(16,45,36,0.06)',
+        focus: 'var(--focus-ring)',
+      },
+      transitionTimingFunction: {
+        settle: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        entrance: 'cubic-bezier(0.16, 0.84, 0.44, 1)',
+      },
+      maxWidth: {
+        prose: '66ch',
+        editorial: '1240px',
+        app: '1480px',
+        measure: '34ch',
+      },
+      spacing: {
+        18: '4.5rem',
+        22: '5.5rem',
+        30: '7.5rem',
+      },
     },
   },
   plugins: [],
-}
+};

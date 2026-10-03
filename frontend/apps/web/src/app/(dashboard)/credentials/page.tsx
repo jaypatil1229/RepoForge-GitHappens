@@ -150,22 +150,47 @@ export default function CredentialsPage() {
     try {
       const res = await apiClient.listConsents();
       if (res.success && res.data?.consents) {
-        const mapped: VerificationRequest[] = res.data.consents.map((c: any) => ({
-          id: c.id,
-          requesterName: c.requestingOrg?.name || c.requestingOrgId || 'CredLink Verifier',
-          requesterDomain: (c.domain?.toUpperCase() as any) || 'BANK',
-          targetSubjectName: c.citizen?.fullName || c.citizenName || 'Citizen Subject',
-          targetSubjectId: c.citizen?.email || c.citizenId || 'N/A',
-          credentialId: c.credentialId || undefined,
-          credentialTitle: c.credential?.title || undefined,
-          credentialStatus: c.credential?.status || undefined,
-          purpose: c.purpose,
-          requestedClaims: c.requestedClaims || [],
-          approvedClaims: c.approvedClaims || [],
-          status: c.status || 'PENDING',
-          createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recent',
-          expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'N/A',
-        }));
+        const mapped: VerificationRequest[] = res.data.consents.map((c: any) => {
+          // Parse credential claims if available
+          let parsedCredClaims: Array<{ key: string; label: string; value: string }> = [];
+          if (c.credential?.claims) {
+            const rawClaims = c.credential.claims;
+            if (Array.isArray(rawClaims)) {
+              parsedCredClaims = rawClaims.map((item: any) => ({
+                key: item.key || item.label || String(item),
+                label: item.label || item.key || String(item),
+                value: item.value !== undefined ? String(item.value) : '',
+              }));
+            } else if (typeof rawClaims === 'object') {
+              parsedCredClaims = Object.entries(rawClaims).map(([k, v]) => ({
+                key: k,
+                label: k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
+                value: String(v),
+              }));
+            }
+          }
+
+          return {
+            id: c.id,
+            requesterName: c.requestingOrg?.name || c.requestingOrgId || 'CredLink Verifier',
+            requesterDomain: (c.domain?.toUpperCase() as any) || 'BANK',
+            targetSubjectName: c.citizen?.fullName || c.citizenName || 'Citizen Subject',
+            targetSubjectId: c.citizen?.email || c.citizenId || 'N/A',
+            citizenId: c.citizenId || undefined,
+            credentialId: c.credentialId || undefined,
+            credentialTitle: c.credential?.title || undefined,
+            credentialStatus: c.credential?.status || undefined,
+            credentialClaims: parsedCredClaims.length > 0 ? parsedCredClaims : undefined,
+            credentialDomain: c.credential?.domain || c.domain || undefined,
+            purpose: c.purpose,
+            requestedClaims: c.requestedClaims || [],
+            approvedClaims: c.approvedClaims || [],
+            status: c.status || 'PENDING',
+            grantedAt: c.grantedAt || undefined,
+            createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recent',
+            expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'N/A',
+          };
+        });
         setIncomingRequests(mapped);
       } else {
         setIncomingRequests(MOCK_VERIFICATION_REQUESTS);

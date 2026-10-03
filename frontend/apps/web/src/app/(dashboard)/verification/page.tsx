@@ -92,22 +92,47 @@ export default function VerificationPage() {
     try {
       const res = await apiClient.listConsents();
       if (res.success && res.data?.consents && res.data.consents.length > 0) {
-        const mapped: VerificationRequest[] = res.data.consents.map((c: any) => ({
-          id: c.id,
-          requesterName: c.requestingOrg?.name || c.requestingOrgId || currentUser.organizationName,
-          requesterDomain: (c.domain?.toUpperCase() as any) || currentUser.role,
-          targetSubjectName: c.citizen?.fullName || c.citizenName || (c.citizenId ? `Citizen ${c.citizenId.substring(0, 6)}` : 'Citizen Subject'),
-          targetSubjectId: c.citizen?.email || c.citizenId || 'N/A',
-          credentialId: c.credentialId || undefined,
-          credentialTitle: c.credential?.title || (c.credentialId ? 'Attached Credential Record' : undefined),
-          credentialStatus: c.credential?.status || undefined,
-          purpose: c.purpose,
-          requestedClaims: c.requestedClaims || [],
-          approvedClaims: c.approvedClaims || [],
-          status: c.status || 'PENDING',
-          createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recent',
-          expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'N/A',
-        }));
+        const mapped: VerificationRequest[] = res.data.consents.map((c: any) => {
+          // Parse credential claims if available
+          let parsedCredClaims: Array<{ key: string; label: string; value: string }> = [];
+          if (c.credential?.claims) {
+            const rawClaims = c.credential.claims;
+            if (Array.isArray(rawClaims)) {
+              parsedCredClaims = rawClaims.map((item: any) => ({
+                key: item.key || item.label || String(item),
+                label: item.label || item.key || String(item),
+                value: item.value !== undefined ? String(item.value) : '',
+              }));
+            } else if (typeof rawClaims === 'object') {
+              parsedCredClaims = Object.entries(rawClaims).map(([k, v]) => ({
+                key: k,
+                label: k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()),
+                value: String(v),
+              }));
+            }
+          }
+
+          return {
+            id: c.id,
+            requesterName: c.requestingOrg?.name || c.requestingOrgId || currentUser.organizationName,
+            requesterDomain: (c.domain?.toUpperCase() as any) || currentUser.role,
+            targetSubjectName: c.citizen?.fullName || c.citizenName || (c.citizenId ? `Citizen ${c.citizenId.substring(0, 6)}` : 'Citizen Subject'),
+            targetSubjectId: c.citizen?.email || c.citizenId || 'N/A',
+            citizenId: c.citizenId || undefined,
+            credentialId: c.credentialId || undefined,
+            credentialTitle: c.credential?.title || (c.credentialId ? 'Attached Credential Record' : undefined),
+            credentialStatus: c.credential?.status || undefined,
+            credentialClaims: parsedCredClaims.length > 0 ? parsedCredClaims : undefined,
+            credentialDomain: c.credential?.domain || c.domain || undefined,
+            purpose: c.purpose,
+            requestedClaims: c.requestedClaims || [],
+            approvedClaims: c.approvedClaims || [],
+            status: c.status || 'PENDING',
+            grantedAt: c.grantedAt || undefined,
+            createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Recent',
+            expiresAt: c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : 'N/A',
+          };
+        });
         setRequests(mapped);
       } else {
         setRequests(MOCK_VERIFICATION_REQUESTS);
@@ -1025,24 +1050,43 @@ export default function VerificationPage() {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
-                      <span className="text-[10px] text-slate-400 uppercase">Degree Awarded</span>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200">Bachelor of Science</p>
+                  {/* Real Credential Claims from Consent API */}
+                  {selectedReq.credentialClaims && selectedReq.credentialClaims.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {selectedReq.credentialClaims.map((claim) => (
+                        <div key={claim.key} className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
+                          <span className="text-[10px] text-slate-400 uppercase block">{claim.label}</span>
+                          <p className="font-semibold text-slate-800 dark:text-slate-200 break-words">{claim.value}</p>
+                        </div>
+                      ))}
+                      {selectedReq.credentialStatus && (
+                        <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
+                          <span className="text-[10px] text-slate-400 uppercase block">Credential Status</span>
+                          <p className={`font-semibold ${selectedReq.credentialStatus === 'VALID' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {selectedReq.credentialStatus === 'VALID' ? 'VALID & CONFIRMED' : selectedReq.credentialStatus}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
-                      <span className="text-[10px] text-slate-400 uppercase">Major Discipline</span>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200">Computer Science</p>
+                  ) : selectedReq.approvedClaims.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Approved Disclosed Claims</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedReq.approvedClaims.map((claim) => (
+                          <span key={claim} className="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 rounded text-[11px] font-semibold border border-emerald-200 dark:border-emerald-800">
+                            ✓ {claim}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Full credential details available once a specific credential is linked to this consent.
+                      </p>
                     </div>
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
-                      <span className="text-[10px] text-slate-400 uppercase">Graduation Standing</span>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200">First Class with Distinction (3.89 GPA)</p>
+                  ) : (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded text-slate-500 text-center">
+                      <p className="text-[11px]">Citizen granted consent. Credential details will appear once the issuer links a specific credential to this consent.</p>
                     </div>
-                    <div className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded">
-                      <span className="text-[10px] text-slate-400 uppercase">Status</span>
-                      <p className="font-semibold text-emerald-600 dark:text-emerald-400">VALID & CONFIRMED</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Cryptographic Trust Seal & Verification Engine */}

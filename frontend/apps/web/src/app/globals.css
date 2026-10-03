@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Newsreader';
+  src: url('/fonts/newsreader-latin-wght-normal.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @layer base {
   :root {
     --bg-main: #f8fafc;
@@ -20,6 +46,74 @@
     --sai-right: env(safe-area-inset-right, 0px);
     /* Mobile bottom nav height */
     --mobile-nav-height: 64px;
+
+    /* CredLink Design Tokens */
+    --font-display: 'Onest', 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    --font-sans: 'Onest', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    --font-serif: 'Newsreader', 'Iowan Old Style', Palatino, Georgia, serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+
+    /* Ink */
+    --ink-950: #172d23;
+    --ink-800: #2a4034;
+    --ink-600: #586b5f;
+    --ink-500: #64766a;
+    --ink-400: #93a397;
+
+    /* Paper */
+    --paper-0: #fcfdfc;
+    --paper-50: #f5f8f4;
+    --paper-100: #ebf1e9;
+    --paper-200: #dee7dd;
+
+    /* Lines */
+    --line-200: #dbe4da;
+    --line-300: #c3d1c4;
+
+    /* Evergreen brand ramp */
+    --forest-950: #0b2019;
+    --forest-900: #102d24;
+    --forest-800: #163d30;
+    --forest-700: #21543f;
+    --forest-600: #2d6a4f;
+    --forest-300: #8fb79f;
+    --forest-100: #e4eee6;
+    --forest-50: #f1f6f1;
+
+    /* Celadon stage surfaces */
+    --celadon-100: #edf3ea;
+    --celadon-200: #dfeade;
+    --celadon-300: #cbdbc9;
+
+    /* Semantic */
+    --success-700: #14603f;
+    --success-100: #cfe8d8;
+    --success-50: #edf7f0;
+    --warning-700: #8a5a06;
+    --warning-100: #f4e2ba;
+    --warning-50: #fdf6e6;
+    --danger-700: #a52130;
+    --danger-100: #f3d2d6;
+    --danger-50: #fdeff0;
+    --info-700: #2b5590;
+    --info-100: #d5e2f4;
+    --info-50: #eff4fb;
+
+    /* Type scale */
+    --fs-micro: 0.75rem;
+    --fs-ui: 0.875rem;
+    --fs-body: 0.9375rem;
+    --fs-body-lg: clamp(1.0625rem, 1.02rem + 0.2vw, 1.1875rem);
+    --fs-h4: 1.125rem;
+    --fs-h3: clamp(1.25rem, 1.18rem + 0.3vw, 1.5rem);
+    --fs-h2: clamp(1.75rem, 1.4rem + 1.5vw, 2.75rem);
+    --fs-h1: clamp(2.1rem, 1.5rem + 2.6vw, 3.75rem);
+    --fs-display-l: clamp(2.35rem, 1.2rem + 4.1vw, 4.9rem);
+    --fs-display-xl: clamp(2.6rem, 0.9rem + 6vw, 6.5rem);
+
+    /* Layout */
+    --nav-h: 64px;
+    --focus-ring: 0 0 0 2px var(--paper-0), 0 0 0 4px var(--forest-700);
   }
 
   .dark {
@@ -150,3 +244,80 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 }
+
+@layer components {
+  .container-editorial {
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+    padding-inline: 20px;
+  }
+  @media (min-width: 640px) { .container-editorial { padding-inline: 32px; } }
+  @media (min-width: 1024px) { .container-editorial { padding-inline: 48px; } }
+  @media (min-width: 1440px) { .container-editorial { padding-inline: 64px; } }
+
+  .container-app {
+    width: 100%;
+    max-width: 1480px;
+    margin-inline: auto;
+    padding-inline: 18px;
+  }
+  @media (min-width: 768px) { .container-app { padding-inline: 28px; } }
+  @media (min-width: 1280px) { .container-app { padding-inline: 36px; } }
+
+  .container-stage {
+    width: 100%;
+    max-width: 1680px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 1024px) { .container-stage { padding-inline: 40px; } }
+
+  .type-display {
+    font-family: var(--font-display);
+    font-weight: 560;
+    letter-spacing: -0.042em;
+    line-height: 1.0;
+  }
+
+  .type-award {
+    font-family: var(--font-serif);
+    font-weight: 420;
+    letter-spacing: -0.015em;
+    font-style: normal;
+  }
+
+  .eyebrow {
+    font-size: var(--fs-micro);
+    font-weight: 560;
+    letter-spacing: 0.01em;
+    color: var(--ink-500);
+  }
+
+  .mono-value {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+    color: var(--ink-600);
+    font-variant-ligatures: none;
+  }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+  .rule { height: 1px; background-color: var(--line-200); }
+  .rule-strong { height: 1px; background-color: var(--line-300); }
+
+  .surface {
+    background-color: var(--paper-0);
+    border: 1px solid var(--line-200);
+    border-radius: 12px;
+  }
+
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  .trust-line {
+    transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+                stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+

@@ -51,7 +51,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="CredLink" />
       </head>
-      <body className="h-full bg-slate-50 dark:bg-[#090D16] text-slate-900 dark:text-slate-100 antialiased">
+      <body className="min-h-full font-sans antialiased">
         <RoleProvider>
           <ServiceWorkerRegistration />
           {children}

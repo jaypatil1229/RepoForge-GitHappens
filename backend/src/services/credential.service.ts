@@ -286,7 +286,27 @@ export class CredentialService {
         }
       } else {
         if (userOrgIds.length > 0) {
-          queryBuilder = queryBuilder.or(`subject_id.eq.${actor.id},issuer_org_id.in.(${userOrgIds.join(',')})`);
+          // Check for active approved consents for requester organizations
+          const { data: activeConsents } = await supabaseAdmin
+            .from('consents')
+            .select('credential_id')
+            .in('requesting_org_id', userOrgIds)
+            .eq('status', 'APPROVED')
+            .not('credential_id', 'is', null);
+
+          const consentedCredIds = (activeConsents || [])
+            .map((c: any) => c.credential_id)
+            .filter(Boolean);
+
+          const allowedConditions = [
+            `subject_id.eq.${actor.id}`,
+            `issuer_org_id.in.(${userOrgIds.join(',')})`,
+          ];
+          if (consentedCredIds.length > 0) {
+            allowedConditions.push(`id.in.(${consentedCredIds.join(',')})`);
+          }
+
+          queryBuilder = queryBuilder.or(allowedConditions.join(','));
         } else {
           queryBuilder = queryBuilder.eq('subject_id', actor.id);
         }
@@ -404,10 +424,23 @@ export class CredentialService {
         .maybeSingle();
 
       if (!member) {
+        const { data: actorMemberships } = await supabaseAdmin
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', actor.id)
+          .eq('status', 'ACTIVE');
+
+        const actorOrgIds = (actorMemberships || []).map((m: any) => m.organization_id);
+
+        if (actorOrgIds.length === 0) {
+          throw new AppError('Forbidden. You are not authorized to view this credential.', 403);
+        }
+
         const { data: consent } = await supabaseAdmin
           .from('consents')
           .select('id')
           .eq('citizen_id', cred.subject_id)
+          .in('requesting_org_id', actorOrgIds)
           .eq('status', 'APPROVED')
           .or(`credential_id.eq.${cred.id},domain.eq.${cred.domain},domain.eq.all`)
           .maybeSingle();
