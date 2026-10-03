@@ -1,9 +1,53 @@
 import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
 import { UserRole, CredentialStatus, OrgStatus, VerificationStatus } from "../types";
 
+const mergeClassNames = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [
+        {
+          text: [
+            'micro',
+            'ui',
+            'body',
+            'body-lg',
+            'h4',
+            'h3',
+            'h2',
+            'h1',
+            'display-l',
+            'display-xl',
+          ],
+        },
+      ],
+    },
+  },
+});
+
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return mergeClassNames(clsx(inputs));
+}
+
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+  return (first + last).toUpperCase();
+}
+
+export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+export function percent(part: number, total: number): string {
+  if (total <= 0) return '0%';
+  return `${Math.round((part / total) * 100)}%`;
+}
+
+export function unique<T>(values: T[]): T[] {
+  return Array.from(new Set(values));
 }
 
 export function getDomainBadgeStyle(domain: UserRole): { label: string; bg: string; text: string; border: string } {

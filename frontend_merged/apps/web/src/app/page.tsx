@@ -1,24 +1,28 @@
-import React from 'react';
-import { LandingNavbar } from '../components/landing/LandingNavbar';
-import { LandingHero } from '../components/landing/LandingHero';
-import { LifeStageNetwork } from '../components/landing/LifeStageNetwork';
-import { HowItWorks } from '../components/landing/HowItWorks';
-import { CitizenBenefits } from '../components/landing/CitizenBenefits';
-import { InstitutionDomains } from '../components/landing/InstitutionDomains';
-import { LandingFooter } from '../components/landing/LandingFooter';
+import type { Metadata } from 'next';
+
+import { MarketingShell } from '@/components/marketing/marketing-shell';
+import { Hero } from '@/components/marketing/hero';
+import { Fragmentation } from '@/components/marketing/fragmentation';
+import { Lifecycle } from '@/components/marketing/lifecycle';
+import { Consent } from '@/components/marketing/consent';
+import { Verification } from '@/components/marketing/verification';
+import { Invitation } from '@/components/marketing/invitation';
+
+export const metadata: Metadata = {
+  title: 'CredLink — proof that moves with you',
+  description:
+    'Institutions issue verifiable credentials, people decide which claims to share, and recipients verify the proof behind them.',
+};
 
 export default function RootLandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090D16] text-slate-900 dark:text-slate-100 flex flex-col antialiased">
-      <LandingNavbar />
-      <main className="flex-1">
-        <LandingHero />
-        <LifeStageNetwork />
-        <HowItWorks />
-        <CitizenBenefits />
-        <InstitutionDomains />
-      </main>
-      <LandingFooter />
-    </div>
+    <MarketingShell>
+      <Hero />
+      <Fragmentation />
+      <Lifecycle />
+      <Consent />
+      <Verification />
+      <Invitation />
+    </MarketingShell>
   );
 }
