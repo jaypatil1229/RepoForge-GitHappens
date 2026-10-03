@@ -66,7 +66,8 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 function ContextCard() {
   const { account, organization, profile } = useDemo();
-  if (!account || !profile) return null;
+  const role = profile?.role ?? account?.role ?? null;
+  if (!profile || !role) return null;
   return (
     <div className="rounded-panel border border-line-200 bg-paper-50 p-3">
       <div className="flex items-center gap-2.5">
@@ -75,7 +76,7 @@ function ContextCard() {
         </span>
         <div className="min-w-0">
           <p className="truncate text-ui font-medium text-ink-950">{profile.fullName}</p>
-          <p className="truncate text-micro text-ink-500">{roleLabel[profile.role]}</p>
+          <p className="truncate text-micro text-ink-500">{roleLabel[role]}</p>
         </div>
       </div>
       <p className="mt-2.5 border-t border-line-200 pt-2.5 text-micro leading-relaxed text-ink-600">
@@ -86,7 +87,7 @@ function ContextCard() {
 }
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
-  const { account, profile, ready, leave } = useDemo();
+  const { account, mode, profile, ready, leave } = useDemo();
   const router = useRouter();
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -95,15 +96,45 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     setDrawerOpen(false);
   }, [pathname]);
 
+  const liveUnauthenticated = ready && mode === 'live' && !profile;
+
+  useEffect(() => {
+    if (liveUnauthenticated) router.replace('/login');
+  }, [liveUnauthenticated, router]);
+
+  const exit = () => {
+    void leave().then(() => router.push('/login'));
+  };
+
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-paper-50">
-        <p className="text-ui text-ink-500">Preparing the preview context…</p>
+        <p className="text-ui text-ink-500">{mode === 'live' ? 'Restoring your session…' : 'Preparing the preview context…'}</p>
       </div>
     );
   }
 
-  if (!account || !profile) {
+  // Live mode without a session: redirect to sign-in rather than showing mock data.
+  if (liveUnauthenticated) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-paper-50 px-6 text-center">
+        <Logo />
+        <div className="max-w-md">
+          <h1 className="type-display text-h2 text-ink-950">Session required</h1>
+          <p className="mt-3 text-body text-ink-600">Your session has ended. Redirecting you to sign in…</p>
+        </div>
+        <Link
+          href="/login"
+          className="inline-flex h-11 items-center rounded-control bg-forest-800 px-5 text-body font-medium text-white transition-colors hover:bg-forest-700"
+        >
+          Go to sign in
+        </Link>
+      </div>
+    );
+  }
+
+  // Demo mode without a selected context: keep the original preview chooser step.
+  if (!profile) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-paper-50 px-6 text-center">
         <Logo />
@@ -124,15 +155,19 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const role = profile.role;
+
   return (
     <div className="min-h-screen bg-paper-50">
-      <div className="flex items-center justify-center gap-2 border-b border-warning-700/20 bg-warning-50 px-4 py-1.5 text-center text-micro text-warning-700">
-        <Info aria-hidden className="size-3.5 shrink-0" />
-        <p>
-          Design preview — synthetic data, mock services, no live backend. Scoped as{' '}
-          <span className="font-medium">{profile.fullName}</span> ({roleLabel[profile.role]}).
-        </p>
-      </div>
+      {mode === 'demo' ? (
+        <div className="flex items-center justify-center gap-2 border-b border-warning-700/20 bg-warning-50 px-4 py-1.5 text-center text-micro text-warning-700">
+          <Info aria-hidden className="size-3.5 shrink-0" />
+          <p>
+            Design preview — using backend test services and demo data, scoped as{' '}
+            <span className="font-medium">{profile.fullName}</span> ({roleLabel[role]}).
+          </p>
+        </div>
+      ) : null}
 
       <div className="mx-auto flex w-full max-w-app">
         <aside className="sticky top-0 hidden h-[calc(100svh-34px)] w-[264px] shrink-0 flex-col justify-between border-r border-line-200 bg-paper-0 px-3 py-4 lg:flex">
@@ -152,14 +187,11 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
               </Link>
               <button
                 type="button"
-                onClick={() => {
-                  leave();
-                  router.push('/login');
-                }}
+                onClick={exit}
                 className="inline-flex items-center gap-1.5 rounded-control px-2 py-1 text-micro text-ink-600 transition-colors hover:bg-paper-100 hover:text-ink-950"
               >
                 <LogOut aria-hidden className="size-3.5" />
-                Exit preview
+                {mode === 'demo' ? 'Exit preview' : 'Sign out'}
               </button>
             </div>
           </div>
@@ -196,15 +228,8 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                 <div className="flex flex-col gap-5 px-4 py-4">
                   <ContextCard />
                   <NavList onNavigate={() => setDrawerOpen(false)} />
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => {
-                      leave();
-                      router.push('/login');
-                    }}
-                  >
-                    Exit preview
+                  <Button variant="secondary" className="w-full" onClick={exit}>
+                    {mode === 'demo' ? 'Exit preview' : 'Sign out'}
                   </Button>
                 </div>
               </motion.div>

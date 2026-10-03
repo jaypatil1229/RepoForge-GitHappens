@@ -2,6 +2,7 @@ import type {
   AccountRole,
   AccountStatus,
   ApiResponse,
+  AuthSession,
   AuditEventType,
   AuditLogRecord,
   AuthUserRecord,
@@ -46,8 +47,8 @@ export interface SignInResult {
    * build, so no token is minted and none is stored. The live client returns an
    * AuthSession here and the UI reads it the same way.
    */
-  session: null;
-  mode: 'demo';
+  session: AuthSession | null;
+  mode: 'demo' | 'live';
 }
 
 export interface SignInInput {
@@ -68,8 +69,8 @@ export interface RegisterInput {
 export interface RegisterResult {
   user: AuthUserRecord;
   memberships: OrganizationMembership[];
-  session: null;
-  mode: 'demo';
+  session: AuthSession | null;
+  mode: 'demo' | 'live';
   /** The role the API actually assigned. A requested ADMIN is downgraded to CITIZEN. */
   assignedRole: AccountRole;
   requestedRole: AccountRole;
@@ -128,6 +129,8 @@ export interface AuditQuery {
 
 export interface IssueCredentialInput {
   subjectId: string;
+  /** Required by the backend; falls back to the signed-in organization when omitted. */
+  issuerOrgId?: string;
   domain: CredentialDomain;
   credentialType: string;
   title: string;
@@ -137,6 +140,8 @@ export interface IssueCredentialInput {
 
 export interface RequestConsentInput {
   citizenId: string;
+  /** Required by the backend; falls back to the signed-in organization when omitted. */
+  requestingOrgId?: string;
   credentialId: string;
   purpose: string;
   requestedClaims: string[];
@@ -165,7 +170,7 @@ export interface CreateOrganizationInput {
 }
 
 export interface DataClient {
-  readonly mode: 'mock';
+  readonly mode: 'mock' | 'live';
   signIn(input: SignInInput): Promise<ApiResponse<SignInResult>>;
   register(input: RegisterInput): Promise<ApiResponse<RegisterResult>>;
   getMe(): Promise<ApiResponse<{ user: AuthUserRecord; memberships: OrganizationMembership[] }>>;
