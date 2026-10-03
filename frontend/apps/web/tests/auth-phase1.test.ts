@@ -75,6 +75,13 @@ assert(
   `Expected EMPLOYER, got ${employerRole}`
 );
 
+const citizenRole = deriveUserRole('CITIZEN', 'college');
+assert(
+  citizenRole === 'CITIZEN',
+  '2.5 Explicit CITIZEN role is not overridden by an organization domain',
+  `Expected CITIZEN, got ${citizenRole}`
+);
+
 // ----------------------------------------------------
 // 3. Role Switcher & Privilege Escalation Tests
 // ----------------------------------------------------

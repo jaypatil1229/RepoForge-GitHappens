@@ -5,7 +5,9 @@ import { UserRole, CurrentUser } from '../types';
 import { apiClient, LoginInput, OrganizationMembership } from '../../../../packages/api-client';
 
 export function deriveUserRole(userRoleAttr?: string, orgDomainAttr?: string): UserRole {
-  if (userRoleAttr?.toUpperCase() === 'ADMIN') return 'ADMIN';
+  const role = userRoleAttr?.toUpperCase();
+  if (role === 'ADMIN') return 'ADMIN';
+  if (role === 'CITIZEN') return 'CITIZEN';
   if (orgDomainAttr) {
     const d = orgDomainAttr.toUpperCase();
     if (d === 'HOSPITAL' || d === 'HEALTHCARE') return 'HOSPITAL';
@@ -14,12 +16,11 @@ export function deriveUserRole(userRoleAttr?: string, orgDomainAttr?: string): U
     if (d === 'EMPLOYER') return 'EMPLOYER';
     if (d === 'ADMIN') return 'ADMIN';
   }
-  if (userRoleAttr) {
-    const r = userRoleAttr.toUpperCase();
-    if (r === 'HOSPITAL' || r === 'HEALTHCARE') return 'HOSPITAL';
-    if (r === 'COLLEGE' || r === 'EDUCATION') return 'COLLEGE';
-    if (r === 'BANK' || r === 'FINANCE') return 'BANK';
-    if (r === 'EMPLOYER') return 'EMPLOYER';
+  if (role) {
+    if (role === 'HOSPITAL' || role === 'HEALTHCARE') return 'HOSPITAL';
+    if (role === 'COLLEGE' || role === 'EDUCATION') return 'COLLEGE';
+    if (role === 'BANK' || role === 'FINANCE') return 'BANK';
+    if (role === 'EMPLOYER') return 'EMPLOYER';
   }
   return 'CITIZEN';
 }
