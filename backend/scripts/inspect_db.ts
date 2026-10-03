@@ -24,6 +24,12 @@ async function main() {
   for (const p of profiles || []) {
     console.log(`- [${p.role}] ${p.id}: ${p.email} (${p.full_name})`);
   }
+
+  const { data: authData } = await supabaseAdmin.auth.admin.listUsers();
+  console.log('=== AUTH USERS in Supabase Auth (' + (authData?.users?.length || 0) + '):');
+  for (const u of authData?.users || []) {
+    console.log(`- ${u.email} | id: ${u.id} | created_at: ${u.created_at}`);
+  }
 }
 
 main().catch(console.error);

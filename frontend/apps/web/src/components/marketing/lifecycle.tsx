@@ -112,10 +112,10 @@ export function Lifecycle() {
                     <span
                       aria-hidden
                       className={cn(
-                        'tabular grid size-[34px] shrink-0 place-items-center rounded-full border text-micro transition-colors duration-200',
+                        'tabular grid size-[34px] shrink-0 place-items-center rounded-full border text-xs font-bold transition-colors duration-200',
                         reached
-                          ? 'border-forest-300 bg-forest-300 text-forest-950'
-                          : 'border-paper-0/30 bg-forest-950 text-paper-0/60',
+                          ? 'border-forest-300 bg-forest-300 text-slate-950'
+                          : 'border-white/30 bg-forest-950 text-white/80',
                       )}
                     >
                       {itemIndex + 1}
@@ -123,13 +123,13 @@ export function Lifecycle() {
                     <span className="min-w-0 flex-1">
                       <span
                         className={cn(
-                          'block text-body font-medium transition-colors',
-                          active ? 'text-paper-0' : 'text-paper-0/70',
+                          'block text-sm font-semibold transition-colors',
+                          active ? 'text-white' : 'text-slate-200 hover:text-white',
                         )}
                       >
                         {item.label}
                       </span>
-                      <span className={cn('block text-micro', active ? 'text-paper-0/70' : 'text-paper-0/55')}>
+                      <span className={cn('block text-xs font-normal', active ? 'text-slate-300' : 'text-slate-400')}>
                         {item.state}
                       </span>
                     </span>

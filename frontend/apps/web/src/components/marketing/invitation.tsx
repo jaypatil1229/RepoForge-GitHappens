@@ -52,21 +52,25 @@ export function Invitation() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/login"
-              className={buttonStyles({ variant: 'inverse', size: 'lg', className: 'group' })}
+              className={buttonStyles({
+                variant: 'inverse',
+                size: 'lg',
+                className: 'group bg-white text-slate-950 font-semibold hover:bg-slate-100 shadow-sm',
+              })}
             >
-              Explore the preview
-              <ArrowRight aria-hidden className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+              <span>Explore the preview</span>
+              <ArrowRight aria-hidden className="size-4 text-slate-950 transition-transform duration-150 group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/register"
               className={buttonStyles({
                 variant: 'secondary',
                 size: 'lg',
-                className: 'border-paper-0/25 bg-transparent text-paper-0 hover:border-paper-0/60 hover:bg-paper-0/10',
+                className: 'border border-white/30 bg-transparent text-white font-medium hover:border-white/60 hover:bg-white/10',
               })}
             >
-              <Building2 aria-hidden className="size-4" />
-              Register an institution
+              <Building2 aria-hidden className="size-4 text-white" />
+              <span>Register an institution</span>
             </Link>
           </div>
         </div>

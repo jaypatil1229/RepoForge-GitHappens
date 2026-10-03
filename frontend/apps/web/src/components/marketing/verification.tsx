@@ -165,14 +165,14 @@ export function Verification() {
                     aria-pressed={active}
                     onClick={() => setScenario(item.key)}
                     className={cn(
-                      'relative rounded-[6px] px-3 py-1.5 text-ui transition-colors duration-150',
-                      active ? 'font-medium text-forest-950' : 'text-paper-0/70 hover:text-paper-0',
+                      'relative rounded-[6px] px-3 py-1.5 text-sm transition-colors duration-150',
+                      active ? 'font-semibold text-slate-950' : 'text-slate-200 hover:text-white font-medium',
                     )}
                   >
                     {active ? (
                       <motion.span
                         layoutId="verification-scenario"
-                        className="absolute inset-0 -z-10 rounded-[6px] bg-paper-0"
+                        className="absolute inset-0 -z-10 rounded-[6px] bg-white shadow-xs"
                         transition={{ duration: reduce ? 0 : 0.26, ease: [0.22, 1, 0.36, 1] }}
                       />
                     ) : null}

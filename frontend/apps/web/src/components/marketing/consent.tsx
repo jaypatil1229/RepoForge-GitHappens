@@ -107,8 +107,9 @@ export function Consent() {
               </p>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="tertiary"
+                  variant="secondary"
                   size="md"
+                  className="text-slate-900 font-medium border-line-300"
                   onClick={() => {
                     setSelected(defaultSelection);
                     setApproved(false);
@@ -118,7 +119,12 @@ export function Consent() {
                 >
                   Reset
                 </Button>
-                <Button size="md" onClick={() => setApproved(true)} disabled={chosen.length === 0}>
+                <Button
+                  size="md"
+                  className="bg-forest-800 text-white font-semibold hover:bg-forest-700"
+                  onClick={() => setApproved(true)}
+                  disabled={chosen.length === 0}
+                >
                   {approved ? 'Approved' : 'Approve these claims'}
                 </Button>
               </div>
