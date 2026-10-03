@@ -2,12 +2,12 @@
   "name": "credlink-backend",
   "version": "1.0.0",
   "description": "CredLink Verifiable Credentials Backend REST API",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "tsx src/server.ts"
   },
   "keywords": [
     "credlink",
@@ -34,7 +34,8 @@
     "express": "^5.2.1",
     "helmet": "^8.3.0",
     "morgan": "^1.12.1",
-    "zod": "^4.6.5"
+    "zod": "^4.6.5",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -42,7 +43,6 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^26.6.3",
     "@veramo/cli": "^7.0.2",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }

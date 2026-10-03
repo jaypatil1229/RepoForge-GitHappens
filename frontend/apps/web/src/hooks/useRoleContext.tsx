@@ -32,7 +32,7 @@ interface RoleContextType {
   isLoading: boolean;
   error: string | null;
   memberships: OrganizationMembership[];
-  login: (credentials: LoginInput) => Promise<boolean>;
+  login: (credentials: LoginInput) => Promise<UserRole | null>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -118,7 +118,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     return () => { isMounted = false; };
   }, []);
 
-  const login = async (credentials: LoginInput): Promise<boolean> => {
+  const login = async (credentials: LoginInput): Promise<UserRole | null> => {
     setError(null);
     try {
       const res = await apiClient.login(credentials);
@@ -132,13 +132,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser(resolved.currentUser);
         setMemberships(resolved.memberships);
         setIsAuthenticated(true);
-        return true;
+        return resolved.currentUser.role;
       }
-      return false;
+      return null;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setError(message);
-      return false;
+      return null;
     }
   };
 

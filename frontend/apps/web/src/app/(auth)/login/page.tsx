@@ -38,9 +38,14 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const success = await login({ email, password });
-      if (success) {
-        router.push('/dashboard');
+      const role = await login({ email, password });
+      if (role) {
+        if (role === 'CITIZEN') {
+          const walletUrl = process.env.NEXT_PUBLIC_WALLET_URL || 'https://credlink-gamma.vercel.app/';
+          window.location.assign(walletUrl);
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         setLocalError('Invalid credentials. Please check your email and password.');
       }
