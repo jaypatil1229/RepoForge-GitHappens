@@ -25,43 +25,10 @@ app.use(
   })
 );
 
-// CORS configuration restricted to authorized origins
-const normalizeOrigin = (url?: string) => (url ? url.replace(/\/+$/, '').toLowerCase() : '');
-const frontendClean = normalizeOrigin(env.FRONTEND_URL);
-const frontendSecure = frontendClean.replace(/^http:\/\//, 'https://');
-const frontendInsecure = frontendClean.replace(/^https:\/\//, 'http://');
-
-const allowedOrigins = new Set(
-  [
-    frontendClean,
-    frontendSecure,
-    frontendInsecure,
-    'https://cred-link-connect.vercel.app',
-    'http://cred-link-connect.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5000',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000',
-  ].filter(Boolean)
-);
-
+// CORS configuration allowing all authorized client origins, PWAs, Vercel deployments, and mobile apps
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-      const normalized = normalizeOrigin(origin);
-      if (
-        allowedOrigins.has(normalized) ||
-        normalized.endsWith('.vercel.app') ||
-        normalized.includes('vercel.app') ||
-        normalized.includes('localhost') ||
-        normalized.includes('127.0.0.1')
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
+    origin: true, // Reflects the request origin, allowing PWA, localhost, Vercel, and custom domains
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],

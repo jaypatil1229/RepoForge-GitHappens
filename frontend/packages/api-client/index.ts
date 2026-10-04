@@ -168,29 +168,45 @@ export interface VerificationCheckResult {
   };
 }
 
+export function sanitizeBackendUrl(url?: string | null): string {
+  if (!url) return 'https://credlink-20-production.up.railway.app';
+  let cleaned = url.trim().replace(/\/+$/, '');
+  // Fix common typo / missing "20" domain variations
+  cleaned = cleaned.replace(/cred-link-production\.up\.railway\.app/gi, 'credlink-20-production.up.railway.app');
+  cleaned = cleaned.replace(/https?:\/\/cred-link(-20)?-production\.up\.railway\.app/gi, 'https://credlink-20-production.up.railway.app');
+  return cleaned;
+}
+
 export class CredLinkApiClient {
   private baseUrl: string;
   private authToken: string | null = null;
 
   constructor(baseUrl?: string) {
-    const PROD_BACKEND =
-      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL) ||
-      'https://credlink-20-production.up.railway.app';
-
     if (baseUrl) {
-      this.baseUrl = baseUrl;
-    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      // In deployed browser: use same-origin relative calls so requests proxy through Next.js API route handler smoothly without CORS 500
-      const envUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
-      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1') && !envUrl.includes('vercel.app')) {
-        this.baseUrl = envUrl;
+      this.baseUrl = sanitizeBackendUrl(baseUrl);
+    } else if (typeof window !== 'undefined') {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalhost) {
+        // Local development: use NEXT_PUBLIC_API_URL or default to localhost:5000
+        const localApi = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL;
+        this.baseUrl = localApi ? sanitizeBackendUrl(localApi) : 'http://localhost:5000';
       } else {
+        // Deployed browser & PWA: ALWAYS use relative '' so all requests proxy through
+        // the Next.js API route handler (/api/[...path]). This eliminates CORS 500 errors
+        // and guarantees requests never hit stale/misconfigured external backend URLs.
         this.baseUrl = '';
       }
     } else {
-      this.baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000';
+      // Server-side Node / SSR: resolve target backend URL
+      const serverUrl =
+        (typeof process !== 'undefined' &&
+          (process.env.BACKEND_URL ||
+            process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
+            process.env.NEXT_PUBLIC_API_URL)) ||
+        'https://credlink-20-production.up.railway.app';
+      this.baseUrl = sanitizeBackendUrl(serverUrl);
     }
-    // Remove trailing slash if present
+
     if (this.baseUrl.endsWith('/')) {
       this.baseUrl = this.baseUrl.slice(0, -1);
     }
@@ -214,23 +230,25 @@ export class CredLinkApiClient {
    * Set dynamic API base URL.
    */
   public setBaseUrl(url: string): void {
-    let cleanUrl = url;
-    if (cleanUrl.endsWith('/')) {
-      cleanUrl = cleanUrl.slice(0, -1);
-    }
-    this.baseUrl = cleanUrl;
+    this.baseUrl = sanitizeBackendUrl(url);
   }
 
   /**
    * Helper method for executing HTTP fetch requests with standard headers, error handling, and JSON parsing.
    */
   private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    let url = `${this.baseUrl}${cleanPath}`;
+
+    // Safety guard: ensure any accidentally injected typo domain is corrected
+    if (url.includes('cred-link-production.up.railway.app')) {
+      url = url.replace(/cred-link-production\.up\.railway\.app/gi, 'credlink-20-production.up.railway.app');
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      ...(options.headers as Record<string, string> || {}),
+      ...((options.headers as Record<string, string>) || {}),
     };
 
     if (this.authToken && !headers['Authorization']) {
@@ -243,12 +261,13 @@ export class CredLinkApiClient {
         headers,
       });
 
+      const responseText = await response.text();
       let jsonBody: ApiResponse<T>;
       try {
-        jsonBody = await response.json();
+        jsonBody = JSON.parse(responseText);
       } catch (jsonErr) {
         throw new ApiClientError(
-          `Invalid JSON response received from server (${response.status} ${response.statusText}) at ${url}`,
+          `Invalid JSON response received from server (${response.status} ${response.statusText}) at ${url}: ${responseText.slice(0, 120)}`,
           response.status
         );
       }

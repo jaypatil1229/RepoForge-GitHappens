@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
-  'https://credlink-20-production.up.railway.app';
+function getTargetBackendUrl(): string {
+  const raw =
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://credlink-20-production.up.railway.app';
+  let cleaned = raw.trim().replace(/\/+$/, '');
+  cleaned = cleaned.replace(/cred-link-production\.up\.railway\.app/gi, 'credlink-20-production.up.railway.app');
+  cleaned = cleaned.replace(/https?:\/\/cred-link(-20)?-production\.up\.railway\.app/gi, 'https://credlink-20-production.up.railway.app');
+  return cleaned;
+}
 
 async function proxyRequest(
   req: NextRequest,
@@ -12,7 +19,8 @@ async function proxyRequest(
   const { path } = await params;
   const pathString = Array.isArray(path) ? path.join('/') : path;
   const search = req.nextUrl.search;
-  const targetUrl = `${BACKEND_URL.replace(/\/+$/, '')}/api/${pathString}${search}`;
+  const backendBase = getTargetBackendUrl();
+  const targetUrl = `${backendBase}/api/${pathString}${search}`;
 
   const forwardHeaders = new Headers();
   req.headers.forEach((value, key) => {
