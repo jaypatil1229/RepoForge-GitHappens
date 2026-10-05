@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const configuredBackendUrl = (
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
-  'https://credlink-20-production.up.railway.app'
-).trim().replace(/\/+$/, '').replace(/\/api$/, '');
-// Keep runtime proxy URL normalization consistent with next.config.ts.
-const BACKEND_URL = /^https?:\/\//i.test(configuredBackendUrl)
-  ? configuredBackendUrl
-  : `https://${configuredBackendUrl}`;
+function getTargetBackendUrl(): string {
+  const raw =
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://credlink-20-production.up.railway.app';
+  let cleaned = raw.trim().replace(/\/+$/, '').replace(/\/api$/, '');
+  cleaned = cleaned.replace(/cred-link-production\.up\.railway\.app/gi, 'credlink-20-production.up.railway.app');
+  cleaned = cleaned.replace(/https?:\/\/cred-link(-20)?-production\.up\.railway\.app/gi, 'https://credlink-20-production.up.railway.app');
+  // Railway hostnames may be configured without a scheme; retain explicit local HTTP URLs.
+  const backendBaseUrl = /^https?:\/\//i.test(cleaned)
+    ? cleaned
+    : `https://${cleaned}`;
+  return backendBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+}
 
 async function proxyRequest(
   req: NextRequest,
@@ -17,7 +23,8 @@ async function proxyRequest(
   const { path } = await params;
   const pathString = Array.isArray(path) ? path.join('/') : path;
   const search = req.nextUrl.search;
-  const targetUrl = `${BACKEND_URL}/api/${pathString}${search}`;
+  const backendBase = getTargetBackendUrl();
+  const targetUrl = `${backendBase}/api/${pathString}${search}`;
 
   const forwardHeaders = new Headers();
   req.headers.forEach((value, key) => {
