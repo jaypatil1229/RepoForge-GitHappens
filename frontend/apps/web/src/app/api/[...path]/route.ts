@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL =
+const configuredBackendUrl = (
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_BACKEND_PRODUCTION_URL ||
-  'https://credlink-20-production.up.railway.app';
+  'https://credlink-20-production.up.railway.app'
+).trim().replace(/\/+$/, '').replace(/\/api$/, '');
+// Keep runtime proxy URL normalization consistent with next.config.ts.
+const BACKEND_URL = /^https?:\/\//i.test(configuredBackendUrl)
+  ? configuredBackendUrl
+  : `https://${configuredBackendUrl}`;
 
 async function proxyRequest(
   req: NextRequest,
@@ -12,7 +17,7 @@ async function proxyRequest(
   const { path } = await params;
   const pathString = Array.isArray(path) ? path.join('/') : path;
   const search = req.nextUrl.search;
-  const targetUrl = `${BACKEND_URL.replace(/\/+$/, '')}/api/${pathString}${search}`;
+  const targetUrl = `${BACKEND_URL}/api/${pathString}${search}`;
 
   const forwardHeaders = new Headers();
   req.headers.forEach((value, key) => {

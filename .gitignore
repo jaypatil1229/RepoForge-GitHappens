@@ -25,3 +25,5 @@ dist/
 .npm-cache
 .npm-cache/
 **/.npm-cache/
+
+/CredLink-Launch-Film/
